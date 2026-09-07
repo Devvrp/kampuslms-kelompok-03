@@ -9,24 +9,24 @@ class CourseController extends Controller
         $courses = [
             [
                 'id' => 1,
-                'kode' => 'SI101',
-                'nama' => 'Pemrograman Web',
+                'kode' => 'SI2514023',
+                'nama' => 'Perencanaa Strategis Sistem Informasi',
                 'sks' => 3,
-                'dosen' => 'Budi Santoso',
+                'dosen' => 'Bu Yuyun',
             ],
             [
                 'id' => 2,
-                'kode' => 'SI102',
-                'nama' => 'Basis Data',
+                'kode' => 'SI2514024',
+                'nama' => 'Pemrograman Web',
                 'sks' => 3,
-                'dosen' => 'Andi Wijaya',
+                'dosen' => 'Pak Aidil',
             ],
             [
                 'id' => 3,
-                'kode' => 'SI103',
-                'nama' => 'Analisis dan Perancangan Sistem',
+                'kode' => 'SI2514025',
+                'nama' => 'Kecerdasan Bisnis',
                 'sks' => 3,
-                'dosen' => 'Siti Aminah',
+                'dosen' => 'Pak Dwi',
             ],
         ];
 
@@ -38,24 +38,24 @@ class CourseController extends Controller
         $courses = [
             [
                 'id' => 1,
-                'kode' => 'SI101',
-                'nama' => 'Pemrograman Web',
+                'kode' => 'SI2514023',
+                'nama' => 'Perencanaa Strategis Sistem Informasi',
                 'sks' => 3,
-                'dosen' => 'Budi Santoso',
+                'dosen' => 'Bu Yuyun',
             ],
             [
                 'id' => 2,
-                'kode' => 'SI102',
-                'nama' => 'Basis Data',
+                'kode' => 'SI2514024',
+                'nama' => 'Pemrograman Web',
                 'sks' => 3,
-                'dosen' => 'Andi Wijaya',
+                'dosen' => 'Pak Aidil',
             ],
             [
                 'id' => 3,
-                'kode' => 'SI103',
-                'nama' => 'Analisis dan Perancangan Sistem',
+                'kode' => 'SI2514025',
+                'nama' => 'Kecerdasan Bisnis',
                 'sks' => 3,
-                'dosen' => 'Siti Aminah',
+                'dosen' => 'Pak Dwi',
             ],
         ];
 

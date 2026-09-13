@@ -36,9 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void { // ini yang mengarahkan ke middleware (pengecekan request)
+        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {// ini yang mengatur pengecualian
-
+        //
     })->create();
 ```
 
@@ -54,6 +55,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
 2. Saat APP_KEY dihapus, kita tidak dapat mengkases websitenya dikarenakan enkripsi key untuk beberapa fungsi sepeerti session dan cookies akan tidak berjalan dengan normal. Namun awalnya saya kira app key ini hanya untuk mengunci dari data saja, ternyata tidak
 
-3. Saat db_database tidak diisi dengan benar ataupun kosong, program akan bingung mencari sumber database nya dan akan mengalami error. Program akan bingung dimana akan menaruh data data penting. Yang muncul adalah SQLSTATE[3D000]: Invalid catalog name: 1046 No database selected (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: , SQL: select * from `sessions` where `id` = RBfWIYHlFgagrQVvFigQb9lXoAWd7sdznd0zdJRZ limit 1)'
+3. Saat db_database tidak diisi dengan benar ataupun kosong, program akan bingung mencari sumber database nya dan akan mengalami error. Program akan bingung dimana akan menaruh data data penting. Yang muncul adalah SQLSTATE[3D000]: Invalid catalog name: 1046 No database selected (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: , SQL: select * from `sessions` where `id` = RBfWIYHlFgagrQVvFigQb9lXoAWd7sdznd0zdJRZ limit 1)
 
-4. Jika App_debug dimatikan kita tidak diperlihatkan apa permasalahan yang terjadi pada program kita, apakah itu salah syntax ataupun database. Sehingga hal ini bisa membuat proses debugging memakan waktu lebih lama dibandingkan app_debug berstatus true. Output yang saya dapatkan adalah 500 Server Error.
+4. Jika App_debug dimatikan kita tidak diperlihatkan apa permasalahan yang terjadi pada program kita, apakah itu salah syntax ataupun database. Sehingga hal ini bisa membuat proses debugging memakan waktu lebih lama dibandingkan app_debug berstatus true. Output yang saya dapatkan adalah 500 Server Error

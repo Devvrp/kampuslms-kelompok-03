@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -12,3 +13,4 @@ Route::get('/tentang', function () {
 })->name('tentang');
 
 Route::resource('courses', CourseController::class);
+Route::resource('users', UserController::class);

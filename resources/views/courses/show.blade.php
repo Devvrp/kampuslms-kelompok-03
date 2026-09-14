@@ -10,7 +10,7 @@
 
         <tr>
             <th>Nama Mata Kuliah</th>
-            <td>{{ $course['nama'] }}</td>
+            <td>{!! $course['nama'] !!}</td>
         </tr>
 
         <tr>

@@ -1,5 +1,30 @@
-<x-layout title="Dashboard">
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
 
-    <h1>Dashboard KampusLMS</h1>
+    <title>{{ $title ?? 'KampusLMS' }}</title>
+</head>
 
-</x-layout>
+<body>
+<h1>XSS Demo</h1>
+
+@php
+    $nama = "<script>alert('XSS berhasil!')</script>";
+@endphp
+
+{{ $nama }}
+    <nav>
+        <a href="{{ route('dashboard') }}">Dashboard</a> |
+        <a href="{{ route('courses.index') }}">Mata Kuliah</a> |
+        <a href="{{ route('tentang') }}">Tentang</a>
+    </nav>
+
+    <hr>
+
+    <main>
+        {{ $slot }}
+    </main>
+
+</body>
+</html>

@@ -12,6 +12,19 @@
         <a href="{{ route('tentang') }}">Tentang</a>
     </nav>
     <hr>
+
+    @if (session('success'))
+        <div>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div>
+            {{ session('error') }}
+        </div>
+    @endif
+
     <main>
         {{ $slot }}
     </main>

@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreCourseRequest;
+use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-
 class CourseController extends Controller
 {
     public function index()
@@ -23,11 +22,9 @@ class CourseController extends Controller
         return view('courses.create', compact('lecturers'));
     }
 
-    public function store(Request $request)
+    public function store(StoreCourseRequest $request)
     {
-        $validated = $request->validate($this->rules());
-
-        $course = Course::create($validated);
+        $course = Course::create($request->validated());
 
         return redirect()
             ->route('courses.show', $course)
@@ -48,11 +45,9 @@ class CourseController extends Controller
         return view('courses.edit', compact('course', 'lecturers'));
     }
 
-    public function update(Request $request, Course $course)
+    public function update(UpdateCourseRequest $request, Course $course)
     {
-        $validated = $request->validate($this->rules($course));
-
-        $course->update($validated);
+        $course->update($request->validated());
 
         return redirect()
             ->route('courses.show', $course)
@@ -66,25 +61,5 @@ class CourseController extends Controller
         return redirect()
             ->route('courses.index')
             ->with('success', 'Mata kuliah berhasil dihapus.');
-    }
-
-    private function rules(?Course $course = null): array
-    {
-        return [
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('courses', 'code')->ignore($course),
-            ],
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'sks' => ['required', 'integer', 'min:1', 'max:6'],
-            'lecturer_id' => [
-                'required',
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'dosen')),
-            ],
-            'status' => ['required', Rule::in(['draft', 'active', 'archived'])],
-        ];
     }
 }

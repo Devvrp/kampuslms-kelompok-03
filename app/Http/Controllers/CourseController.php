@@ -2,31 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreCourseRequest;
-use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
 class CourseController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $search = trim($request->input('q', ''));
-        $status = $request->input('status');
-
-        $courses = Course::query()
-            ->with('lecturer')
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('code', 'like', "%{$search}%")
-                        ->orWhere('name', 'like', "%{$search}%");
-                });
-            })
-            ->when($request->filled('status'), function ($query) use ($status) {
-                $query->where('status', $status);
-            })
-            ->orderBy('code')
-            ->paginate(15)
-            ->withQueryString();
+        $courses = Course::with('lecturer')->orderBy('code')->get();
 
         return view('courses.index', compact('courses'));
     }
@@ -38,9 +23,11 @@ class CourseController extends Controller
         return view('courses.create', compact('lecturers'));
     }
 
-    public function store(StoreCourseRequest $request)
+    public function store(Request $request)
     {
-        $course = Course::create($request->validated());
+        $validated = $request->validate($this->rules());
+
+        $course = Course::create($validated);
 
         return redirect()
             ->route('courses.show', $course)
@@ -61,9 +48,11 @@ class CourseController extends Controller
         return view('courses.edit', compact('course', 'lecturers'));
     }
 
-    public function update(UpdateCourseRequest $request, Course $course)
+    public function update(Request $request, Course $course)
     {
-        $course->update($request->validated());
+        $validated = $request->validate($this->rules($course));
+
+        $course->update($validated);
 
         return redirect()
             ->route('courses.show', $course)
@@ -77,5 +66,25 @@ class CourseController extends Controller
         return redirect()
             ->route('courses.index')
             ->with('success', 'Mata kuliah berhasil dihapus.');
+    }
+
+    private function rules(?Course $course = null): array
+    {
+        return [
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('courses', 'code')->ignore($course),
+            ],
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'sks' => ['required', 'integer', 'min:1', 'max:6'],
+            'lecturer_id' => [
+                'required',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'dosen')),
+            ],
+            'status' => ['required', Rule::in(['draft', 'active', 'archived'])],
+        ];
     }
 }

@@ -10,6 +10,20 @@
         <a href="{{ route('users.create') }}">Tambah Pengguna</a>
     </p>
 
+    <form action="{{ route('users.index') }}" method="GET">
+        <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari nama atau email">
+
+        <select name="role">
+            <option value="">Semua role</option>
+            @foreach ($roles as $role)
+                <option value="{{ $role }}" @selected(request('role') === $role)>{{ $role }}</option>
+            @endforeach
+        </select>
+
+        <button type="submit">Cari</button>
+        <a href="{{ route('users.index') }}">Reset</a>
+    </form>
+
     <table border="1">
         <tr>
             <th>Nama</th>
@@ -42,5 +56,7 @@
             </tr>
         @endforelse
     </table>
+
+    {{ $users->links() }}
 
 </x-layout>

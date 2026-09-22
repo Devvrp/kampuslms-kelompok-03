@@ -8,9 +8,25 @@ use App\Models\Course;
 use App\Models\User;
 class CourseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $courses = Course::with('lecturer')->orderBy('code')->get();
+        $search = trim($request->input('q', ''));
+        $status = $request->input('status');
+
+        $courses = Course::query()
+            ->with('lecturer')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->filled('status'), function ($query) use ($status) {
+                $query->where('status', $status);
+            })
+            ->orderBy('code')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('courses.index', compact('courses'));
     }

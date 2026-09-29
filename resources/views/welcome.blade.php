@@ -38,7 +38,7 @@
                 </p>
 
                 <a
-                    href="{{ route('courses.index') }}"
+                    href="{{ route('admin.courses.index') }}"
                     class="mt-5 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
                     Lihat Mata Kuliah
@@ -62,7 +62,7 @@
                 </p>
 
                 <a
-                    href="{{ route('users.index') }}"
+                    href="{{ route('admin.users.index') }}"
                     class="mt-5 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
                     Lihat Pengguna

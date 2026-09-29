@@ -35,7 +35,9 @@ class CourseController extends Controller
 
     public function create()
     {
-        $lecturers = User::where('role', 'dosen')->orderBy('name')->get();
+        $lecturers = User::where('role', 'dosen')
+            ->orderBy('name')
+            ->get();
 
         return view('courses.create', compact('lecturers'));
     }
@@ -45,7 +47,7 @@ class CourseController extends Controller
         $course = Course::create($request->validated());
 
         return redirect()
-            ->route('courses.show', $course)
+            ->route('admin.courses.show', $course)
             ->with('success', 'Mata kuliah berhasil ditambahkan.');
     }
 
@@ -58,17 +60,21 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
-        $lecturers = User::where('role', 'dosen')->orderBy('name')->get();
+        $lecturers = User::where('role', 'dosen')
+            ->orderBy('name')
+            ->get();
 
         return view('courses.edit', compact('course', 'lecturers'));
     }
 
-    public function update(UpdateCourseRequest $request, Course $course)
-    {
+    public function update(
+        UpdateCourseRequest $request,
+        Course $course
+    ) {
         $course->update($request->validated());
 
         return redirect()
-            ->route('courses.show', $course)
+            ->route('admin.courses.show', $course)
             ->with('success', 'Mata kuliah berhasil diperbarui.');
     }
 
@@ -77,7 +83,7 @@ class CourseController extends Controller
         $course->delete();
 
         return redirect()
-            ->route('courses.index')
+            ->route('admin.courses.index')
             ->with('success', 'Mata kuliah berhasil dihapus.');
     }
 }

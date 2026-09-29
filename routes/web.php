@@ -7,11 +7,6 @@ use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Public Routes
-|--------------------------------------------------------------------------
-*/
 
 Route::get('/', function () {
     return view('welcome');
@@ -22,30 +17,13 @@ Route::get('/tentang', function () {
 })->name('tentang');
 
 
-/*
-|--------------------------------------------------------------------------
-| Authenticated Routes
-|--------------------------------------------------------------------------
-*/
-
 Route::middleware('auth')->group(function () {
 
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard
-    |--------------------------------------------------------------------------
-    */
 
     Route::get('/dashboard', function () {
         return view('welcome');
     })->name('dashboard');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin
-    |--------------------------------------------------------------------------
-    */
 
     Route::middleware('role:admin')
         ->prefix('admin')
@@ -58,12 +36,6 @@ Route::middleware('auth')->group(function () {
         });
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Dosen
-    |--------------------------------------------------------------------------
-    */
-
     Route::middleware('role:dosen')
         ->prefix('dosen')
         ->name('dosen.')
@@ -71,16 +43,19 @@ Route::middleware('auth')->group(function () {
 
             Route::scopeBindings()->group(function () {
 
+                // Materi dalam mata kuliah
                 Route::resource(
                     'courses.materials',
                     MaterialController::class
                 )->shallow();
 
+                // Tugas dalam mata kuliah
                 Route::resource(
                     'courses.assignments',
                     AssignmentController::class
                 )->shallow();
 
+                // Submission tugas
                 Route::resource(
                     'assignments.submissions',
                     SubmissionController::class
@@ -91,12 +66,6 @@ Route::middleware('auth')->group(function () {
         });
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Mahasiswa
-    |--------------------------------------------------------------------------
-    */
-
     Route::middleware('role:mahasiswa')
         ->prefix('mahasiswa')
         ->name('mahasiswa.')
@@ -104,6 +73,7 @@ Route::middleware('auth')->group(function () {
 
             Route::scopeBindings()->group(function () {
 
+                // Melihat materi dalam mata kuliah
                 Route::resource(
                     'courses.materials',
                     MaterialController::class
@@ -111,6 +81,7 @@ Route::middleware('auth')->group(function () {
                     ->only(['index', 'show'])
                     ->shallow();
 
+                // Melihat tugas dalam mata kuliah
                 Route::resource(
                     'courses.assignments',
                     AssignmentController::class
@@ -118,6 +89,7 @@ Route::middleware('auth')->group(function () {
                     ->only(['index', 'show'])
                     ->shallow();
 
+                // Melihat dan mengumpulkan submission
                 Route::resource(
                     'assignments.submissions',
                     SubmissionController::class

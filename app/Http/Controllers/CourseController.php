@@ -53,6 +53,12 @@ class CourseController extends Controller
 
     public function show(Course $course)
     {
+        abort_unless(
+            auth()->user()->role === 'admin'
+                || $course->lecturer_id === auth()->id(),
+            403
+        );
+
         $course->load('lecturer');
 
         return view('courses.show', compact('course'));
@@ -60,6 +66,12 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
+        abort_unless(
+            auth()->user()->role === 'admin'
+                || $course->lecturer_id === auth()->id(),
+            403
+        );
+
         $lecturers = User::where('role', 'dosen')
             ->orderBy('name')
             ->get();
@@ -71,6 +83,12 @@ class CourseController extends Controller
         UpdateCourseRequest $request,
         Course $course
     ) {
+        abort_unless(
+            auth()->user()->role === 'admin'
+                || $course->lecturer_id === auth()->id(),
+            403
+        );
+
         $course->update($request->validated());
 
         return redirect()
@@ -80,6 +98,12 @@ class CourseController extends Controller
 
     public function destroy(Course $course)
     {
+        abort_unless(
+            auth()->user()->role === 'admin'
+                || $course->lecturer_id === auth()->id(),
+            403
+        );
+
         $course->delete();
 
         return redirect()

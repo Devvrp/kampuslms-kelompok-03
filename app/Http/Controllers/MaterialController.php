@@ -6,25 +6,14 @@ use App\Models\Course;
 use App\Models\Material;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
 class MaterialController extends Controller
 {
     public function index(Course $course)
     {
-        $user = Auth::user();
-
-        if ($user->role === 'dosen') {
-            abort_unless(
-                $course->lecturer_id === $user->id,
-                403
-            );
-        } else {
-            abort_unless(
-                $user->courses()->whereKey($course->id)->exists(),
-                403
-            );
-        }
+        Gate::authorize('viewAny', [Material::class, $course]);
 
         $materials = $course->materials()
             ->latest()
@@ -35,22 +24,14 @@ class MaterialController extends Controller
 
     public function create(Course $course)
     {
-        abort_unless(
-            Auth::user()->role === 'dosen'
-                && $course->lecturer_id === Auth::id(),
-            403
-        );
+        Gate::authorize('create', [Material::class, $course]);
 
         return view('materials.create', compact('course'));
     }
 
     public function store(Request $request, Course $course)
     {
-        abort_unless(
-            Auth::user()->role === 'dosen'
-                && $course->lecturer_id === Auth::id(),
-            403
-        );
+        Gate::authorize('create', [Material::class, $course]);
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -88,20 +69,9 @@ class MaterialController extends Controller
 
     public function show(Material $material)
     {
-        $user = Auth::user();
-        $course = $material->course;
+        Gate::authorize('view', $material);
 
-        if ($user->role === 'dosen') {
-            abort_unless(
-                $course->lecturer_id === $user->id,
-                403
-            );
-        } else {
-            abort_unless(
-                $user->courses()->whereKey($course->id)->exists(),
-                403
-            );
-        }
+        $course = $material->course;
 
         return view('materials.show', compact('material', 'course'));
     }
@@ -110,11 +80,7 @@ class MaterialController extends Controller
     {
         $course = $material->course;
 
-        abort_unless(
-            Auth::user()->role === 'dosen'
-                && $course->lecturer_id === Auth::id(),
-            403
-        );
+        Gate::authorize('update', $material);
 
         return view('materials.edit', compact('material', 'course'));
     }
@@ -123,11 +89,7 @@ class MaterialController extends Controller
     {
         $course = $material->course;
 
-        abort_unless(
-            Auth::user()->role === 'dosen'
-                && $course->lecturer_id === Auth::id(),
-            403
-        );
+        Gate::authorize('update', $material);
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -179,11 +141,7 @@ class MaterialController extends Controller
     {
         $course = $material->course;
 
-        abort_unless(
-            Auth::user()->role === 'dosen'
-                && $course->lecturer_id === Auth::id(),
-            403
-        );
+        Gate::authorize('delete', $material);
 
         if ($material->file_path) {
             Storage::delete($material->file_path);

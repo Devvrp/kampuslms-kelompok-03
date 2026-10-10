@@ -5,6 +5,9 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -14,6 +17,47 @@ Route::get('/', function () {
 Route::get('/tentang', function () {
     return view('tentang');
 })->name('tentang');
+
+// Autentikasi web untuk pengguna yang belum login.
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [
+        AuthenticatedSessionController::class,
+        'create',
+    ])->name('login');
+
+    Route::post('/login', [
+        AuthenticatedSessionController::class,
+        'store',
+    ])->name('login.store');
+
+    // Meminta tautan reset password melalui email.
+    Route::get('/forgot-password', [
+        PasswordResetLinkController::class,
+        'create',
+    ])->name('password.request');
+
+    Route::post('/forgot-password', [
+        PasswordResetLinkController::class,
+        'store',
+    ])->name('password.email');
+
+    // Menampilkan formulir dan memproses password baru.
+    Route::get('/reset-password/{token}', [
+        NewPasswordController::class,
+        'create',
+    ])->name('password.reset');
+
+    Route::post('/reset-password', [
+        NewPasswordController::class,
+        'store',
+    ])->name('password.store');
+});
+
+// Logout hanya dapat dilakukan pengguna yang sudah login.
+Route::post('/logout', [
+    AuthenticatedSessionController::class,
+    'destroy',
+])->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function () {
 

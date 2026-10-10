@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReturnsApiValidationErrors;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreAssignmentRequest extends FormRequest
 {
+    use ReturnsApiValidationErrors;
     public function authorize(): bool
     {
         return $this->user()?->role === 'dosen';

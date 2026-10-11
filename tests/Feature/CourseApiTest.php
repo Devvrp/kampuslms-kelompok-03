@@ -12,6 +12,37 @@ class CourseApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_former_lecturer_requires_enrollment_to_read_course_detail_after_becoming_student(): void
+    {
+        $owner = User::factory()->create(['role' => 'dosen']);
+        $course = Course::factory()->create(['lecturer_id' => $owner->id]);
+        $owner->forceFill(['role' => 'mahasiswa'])->save();
+        Sanctum::actingAs($owner);
+
+        $this->getJson("/api/v1/courses/{$course->id}")
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'Anda tidak memiliki akses ke sumber daya ini.']);
+
+        $owner->courses()->attach($course, ['enrolled_at' => now()]);
+        $this->getJson("/api/v1/courses/{$course->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $course->id);
+    }
+
+    public function test_enrolled_student_and_admin_can_read_course_detail(): void
+    {
+        $course = Course::factory()->create();
+        $student = User::factory()->create(['role' => 'mahasiswa']);
+        $student->courses()->attach($course, ['enrolled_at' => now()]);
+
+        foreach ([$student, User::factory()->create(['role' => 'admin'])] as $user) {
+            Sanctum::actingAs($user);
+            $this->getJson("/api/v1/courses/{$course->id}")
+                ->assertOk()
+                ->assertJsonPath('data.id', $course->id);
+        }
+    }
+
     public function test_admin_can_view_all_courses_with_pagination(): void
     {
         User::factory()->create([

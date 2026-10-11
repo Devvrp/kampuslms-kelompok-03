@@ -13,6 +13,24 @@ class MaterialApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_former_lecturer_requires_enrollment_after_becoming_student(): void
+    {
+        $owner = User::factory()->create(['role' => 'dosen']);
+        $course = Course::factory()->create(['lecturer_id' => $owner->id]);
+        $material = $this->createMaterial($course, $owner, 'Materi Pengujian Role');
+        $owner->forceFill(['role' => 'mahasiswa'])->save();
+        Sanctum::actingAs($owner);
+
+        $this->getJson("/api/v1/courses/{$course->id}/materials")
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'Anda tidak memiliki akses ke sumber daya ini.']);
+
+        $owner->courses()->attach($course, ['enrolled_at' => now()]);
+        $this->getJson("/api/v1/courses/{$course->id}/materials")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $material->id);
+    }
+
     public function test_admin_can_view_course_materials_with_pagination(): void
     {
         $admin = User::factory()->create([
@@ -183,7 +201,7 @@ class MaterialApiTest extends TestCase
             'file_size' => null,
             'mime_type' => null,
             'external_url' => 'https://example.com/materials/'
-                . rawurlencode($title),
+                .rawurlencode($title),
         ]);
     }
 }

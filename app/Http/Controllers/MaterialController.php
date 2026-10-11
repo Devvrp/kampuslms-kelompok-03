@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\Material;
+use App\Rules\MaxTextBytes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class MaterialController extends Controller
 {
@@ -35,10 +37,10 @@ class MaterialController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', new MaxTextBytes],
             'type' => ['required', 'in:file,link'],
             'file' => ['required_if:type,file', 'nullable', 'file', 'mimes:pdf,pptx'],
-            'external_url' => ['required_if:type,link', 'nullable', 'url'],
+            'external_url' => ['required_if:type,link', 'nullable', 'url', 'max:255'],
         ]);
 
         $data = [
@@ -93,10 +95,15 @@ class MaterialController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', new MaxTextBytes],
             'type' => ['required', 'in:file,link'],
-            'file' => ['nullable', 'file', 'mimes:pdf,pptx'],
-            'external_url' => ['required_if:type,link', 'nullable', 'url'],
+            'file' => [
+                Rule::requiredIf($request->input('type') === 'file' && ! $material->file_path),
+                'nullable',
+                'file',
+                'mimes:pdf,pptx',
+            ],
+            'external_url' => ['required_if:type,link', 'nullable', 'url', 'max:255'],
         ]);
 
         $material->title = $validated['title'];

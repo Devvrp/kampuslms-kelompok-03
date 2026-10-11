@@ -34,6 +34,8 @@ Nama cookie session Laravel di proyek kami adalah laravel-session. Ini nama defa
 
 ### BREAK
 
+### BREAK — Tujuh Kerusakan
+
 ### 1. Hapus @csrf dari form, lalu kirim
 
 Prediksi: tanpa token CSRF, Laravel bakal nolak request POST karena gak bisa verifikasi token yang cocok.

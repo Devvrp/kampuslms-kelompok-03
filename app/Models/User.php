@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -49,6 +49,11 @@ class User extends Authenticatable
     public function submissions(): HasMany
     {
         return $this->hasMany(Submission::class);
+    }
+
+    public function feedbackTemplates(): HasMany
+    {
+        return $this->hasMany(FeedbackTemplate::class, 'lecturer_id');
     }
 
     public function gradesGiven(): HasMany

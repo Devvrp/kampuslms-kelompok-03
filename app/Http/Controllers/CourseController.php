@@ -2,40 +2,66 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreCourseRequest;
+use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Gate;
 
 class CourseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $courses = Course::with('lecturer')->orderBy('code')->get();
+        Gate::authorize('viewAny', Course::class);
+
+        $search = trim($request->input('q', ''));
+        $status = $request->input('status');
+
+        $courses = Course::query()
+            ->with('lecturer')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->filled('status'), function ($query) use ($status) {
+                $query->where('status', $status);
+            })
+            ->orderBy('code')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('courses.index', compact('courses'));
     }
 
     public function create()
     {
-        $lecturers = User::where('role', 'dosen')->orderBy('name')->get();
+        Gate::authorize('create', Course::class);
+
+        $lecturers = User::where('role', 'dosen')
+            ->orderBy('name')
+            ->get();
 
         return view('courses.create', compact('lecturers'));
     }
 
-    public function store(Request $request)
+    public function store(StoreCourseRequest $request)
     {
-        $validated = $request->validate($this->rules());
+        Gate::authorize('create', Course::class);
 
-        $course = Course::create($validated);
+        $course = Course::create($request->validated());
 
         return redirect()
-            ->route('courses.show', $course)
+            ->route('admin.courses.show', $course)
             ->with('success', 'Mata kuliah berhasil ditambahkan.');
     }
 
     public function show(Course $course)
     {
+        Gate::authorize('view', $course);
+
         $course->load('lecturer');
 
         return view('courses.show', compact('course'));
@@ -43,48 +69,36 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
-        $lecturers = User::where('role', 'dosen')->orderBy('name')->get();
+        Gate::authorize('update', $course);
+
+        $lecturers = User::where('role', 'dosen')
+            ->orderBy('name')
+            ->get();
 
         return view('courses.edit', compact('course', 'lecturers'));
     }
 
-    public function update(Request $request, Course $course)
-    {
-        $validated = $request->validate($this->rules($course));
+    public function update(
+        UpdateCourseRequest $request,
+        Course $course
+    ) {
+        Gate::authorize('update', $course);
 
-        $course->update($validated);
+        $course->update($request->validated());
 
         return redirect()
-            ->route('courses.show', $course)
+            ->route('admin.courses.show', $course)
             ->with('success', 'Mata kuliah berhasil diperbarui.');
     }
 
     public function destroy(Course $course)
     {
+        Gate::authorize('delete', $course);
+
         $course->delete();
 
         return redirect()
-            ->route('courses.index')
+            ->route('admin.courses.index')
             ->with('success', 'Mata kuliah berhasil dihapus.');
-    }
-
-    private function rules(?Course $course = null): array
-    {
-        return [
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('courses', 'code')->ignore($course),
-            ],
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'sks' => ['required', 'integer', 'min:1', 'max:6'],
-            'lecturer_id' => [
-                'required',
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'dosen')),
-            ],
-            'status' => ['required', Rule::in(['draft', 'active', 'archived'])],
-        ];
     }
 }

@@ -8,11 +8,28 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderBy('name')->get();
+        $users = User::query()
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $q = $request->q;
 
-        return view('users.index', compact('users'));
+                $query->where(function ($query) use ($q) {
+                    $query->where('name', 'like', '%' . $q . '%')
+                        ->orWhere('email', 'like', '%' . $q . '%');
+                });
+            })
+            ->when($request->filled('role'), function ($query) use ($request) {
+                $query->where('role', $request->role);
+            })
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('users.index', [
+            'users' => $users,
+            'roles' => $this->roles(),
+        ]);
     }
 
     public function create()
@@ -35,7 +52,7 @@ class UserController extends Controller
         $user->save();
 
         return redirect()
-            ->route('users.show', $user)
+            ->route('admin.users.show', $user)
             ->with('success', 'Pengguna berhasil ditambahkan.');
     }
 
@@ -68,7 +85,7 @@ class UserController extends Controller
         $user->save();
 
         return redirect()
-            ->route('users.show', $user)
+            ->route('admin.users.show', $user)
             ->with('success', 'Pengguna berhasil diperbarui.');
     }
 
@@ -77,7 +94,7 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()
-            ->route('users.index')
+            ->route('admin.users.index')
             ->with('success', 'Pengguna berhasil dihapus.');
     }
 

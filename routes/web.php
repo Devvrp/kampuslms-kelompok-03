@@ -181,6 +181,11 @@ Route::middleware('auth')->group(function () {
         ->name('mahasiswa.')
         ->group(function () {
 
+        Route::get(
+            'courses',
+            [CourseController::class, 'studentIndex']
+        )->name('courses.index');
+
             Route::scopeBindings()->group(function () {
 
                 // Melihat materi dalam mata kuliah

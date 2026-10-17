@@ -60,6 +60,15 @@
                         >
                             Mata Kuliah Saya
                         </a>
+                    @elseif (auth()->user()->role === 'mahasiswa')
+                        <a
+                            href="{{ route('mahasiswa.courses.index') }}"
+                            class="{{ request()->routeIs('mahasiswa.courses.*')
+                                ? 'font-semibold text-slate-900'
+                                : 'text-slate-600 hover:text-slate-900' }} transition"
+                        >
+                            Mata Kuliah Saya
+                        </a>
                     @endif
                 @endauth
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\Submission;
+use App\Services\AssignmentSubmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -45,41 +46,37 @@ class SubmissionController extends Controller
         ));
     }
 
-    public function store(Request $request, Assignment $assignment)
-    {
-        Gate::authorize('create', [Submission::class, $assignment]);
-
-        $user = auth()->user();
-
-        $existingSubmission = $assignment->submissions()
-            ->where('user_id', $user->id)
-            ->first();
-
-        abort_unless($existingSubmission === null, 403);
+    public function store(
+        Request $request,
+        Assignment $assignment,
+        AssignmentSubmissionService $service
+    ) {
+        Gate::authorize('create', [
+            Submission::class,
+            $assignment,
+        ]);
 
         $validated = $request->validate([
-            'file' => ['required', 'file'],
-            'note' => ['nullable', 'string'],
+            'file' => [
+                'required',
+                'file',
+                'mimes:pdf,doc,docx',
+                'max:5120',
+            ],
+            'note' => [
+                'nullable',
+                'string',
+            ],
         ]);
 
-        $isLate = now()->greaterThan($assignment->due_at);
+        $user = $request->user();
 
-        abort_unless(
-            ! $isLate || $assignment->allow_late,
-            403
+        $submission = $service->submit(
+            $assignment,
+            $user,
+            $validated['file'],
+            $validated['note'] ?? null,
         );
-
-        $file = $request->file('file');
-
-        $submission = $assignment->submissions()->create([
-            'user_id' => $user->id,
-            'file_path' => $file->store('submissions'),
-            'original_name' => $file->getClientOriginalName(),
-            'file_size' => $file->getSize(),
-            'note' => $validated['note'] ?? null,
-            'submitted_at' => now(),
-            'is_late' => $isLate,
-        ]);
 
         return redirect()
             ->route('mahasiswa.submissions.show', $submission)

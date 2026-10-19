@@ -14,10 +14,14 @@ class SubmissionController extends Controller
 {
     public function index(Assignment $assignment)
     {
-        Gate::authorize('viewAny', [Submission::class, $assignment]);
+        Gate::authorize('viewAny', [
+            Submission::class,
+            $assignment,
+        ]);
 
         $course = $assignment->course;
 
+        // Pertahankan variabel ini untuk kompatibilitas tes dan view lama.
         $submissions = $assignment->submissions()
             ->with(['student', 'grade'])
             ->latest('submitted_at')
@@ -54,12 +58,19 @@ class SubmissionController extends Controller
 
         $disk = Storage::disk('local');
 
-        abort_unless($disk->exists($submission->file_path), 404);
+        abort_unless(
+            $disk->exists($submission->file_path),
+            404
+        );
 
-        return $disk->download($submission->file_path, $submission->original_name, [
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return $disk->download(
+            $submission->file_path,
+            $submission->original_name,
+            [
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
     }
 
     public function store(
@@ -91,7 +102,7 @@ class SubmissionController extends Controller
             $assignment,
             $user,
             $validated['file'],
-            $validated['note'] ?? null,
+            $validated['note'] ?? null
         );
 
         return redirect()

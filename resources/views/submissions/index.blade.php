@@ -122,6 +122,14 @@
                                                 Lihat
                                             </a>
                                         @endcan
+                                        @can('download', $submission)
+                                            <a
+                                                href="{{ route('submissions.download', $submission) }}"
+                                                class="ml-3 text-sm font-medium text-blue-600 hover:text-blue-800"
+                                            >
+                                                Unduh berkas
+                                            </a>
+                                        @endcan
                                     </td>
 
                                 </tr>

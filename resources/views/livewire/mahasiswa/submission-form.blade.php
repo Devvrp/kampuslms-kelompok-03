@@ -14,6 +14,12 @@
                 {{ $existingSubmission->original_name }}
             </p>
 
+            @can('download', $existingSubmission)
+                <a href="{{ route('submissions.download', $existingSubmission) }}">
+                    Unduh berkas
+                </a>
+            @endcan
+
             <p>
                 Waktu pengumpulan:
                 {{ $existingSubmission->submitted_at?->format('d-m-Y H:i') }}

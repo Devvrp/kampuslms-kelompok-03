@@ -28,7 +28,8 @@ class AssignmentSubmissionService
             ]);
         }
 
-        $disk = config('filesystems.default');
+        // Submission harus tetap privat meskipun disk default diubah ke public.
+        $disk = 'local';
 
         $existingSubmission = $assignment->submissions()
             ->where('user_id', $student->id)

@@ -131,8 +131,9 @@ class IdorIntegrationTest extends TestCase
         $coursesResponse = $this->getJson('/api/v1/courses')->assertOk()->assertJsonPath('meta.total', 2)
             ->assertJsonCount(2, 'data')->assertJsonPath('data.0.id', $this->courses[$actor]->id)
             ->assertJsonPath('data.0.lecturer.id', $this->lecturers[$actor]->id)
-            ->assertJsonPath('data.1.id', $this->sharedCourse->id)
-            ->assertJsonMissing(['id' => $this->courses[$target]->id, 'code' => $this->courses[$target]->code]);
+            ->assertJsonPath('data.1.id', $this->sharedCourse->id);
+        $this->assertNotContains($this->courses[$target]->id, array_column($coursesResponse->json('data'), 'id'));
+        $this->assertNotContains($this->courses[$target]->code, array_column($coursesResponse->json('data'), 'code'));
         $this->assertNoTargetData($coursesResponse, $target);
         foreach ([$actor, $target] as $index) {
             $paths = [

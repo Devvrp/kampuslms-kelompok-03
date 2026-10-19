@@ -7,6 +7,8 @@ use App\Models\Submission;
 use App\Services\AssignmentSubmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SubmissionController extends Controller
 {
@@ -44,6 +46,20 @@ class SubmissionController extends Controller
             'submission',
             'course'
         ));
+    }
+
+    public function download(Submission $submission): StreamedResponse
+    {
+        Gate::authorize('download', $submission);
+
+        $disk = Storage::disk('local');
+
+        abort_unless($disk->exists($submission->file_path), 404);
+
+        return $disk->download($submission->file_path, $submission->original_name, [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function store(

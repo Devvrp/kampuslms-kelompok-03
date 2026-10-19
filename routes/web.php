@@ -63,6 +63,11 @@ Route::post('/logout', [
 
 Route::middleware('auth')->group(function () {
 
+    Route::get('/submissions/{submission}/download', [
+        SubmissionController::class,
+        'download',
+    ])->name('submissions.download');
+
     Route::get('/dashboard', function () {
         return view('welcome');
     })->name('dashboard');

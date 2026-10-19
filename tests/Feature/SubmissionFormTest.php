@@ -17,6 +17,15 @@ class SubmissionFormTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['filesystems.default' => 'public']);
+        Storage::fake('public');
+        Storage::fake('local');
+    }
+
     private function createEnrolledStudentAssignment(
         array $overrides = []
     ): array {
@@ -49,7 +58,7 @@ class SubmissionFormTest extends TestCase
 
     public function test_mahasiswa_dapat_mengumpulkan_tugas_pdf(): void
     {
-        $disk = config('filesystems.default');
+        $disk = 'local';
         Storage::fake($disk);
 
         [$mahasiswa, $assignment] =
@@ -80,11 +89,15 @@ class SubmissionFormTest extends TestCase
         $this->assertFalse($submission->is_late);
 
         Storage::disk($disk)->assertExists($submission->file_path);
+        $this->assertSame([], Storage::disk('public')->allFiles());
+
+        $this->get(route('submissions.download', $submission))
+            ->assertOk()->assertDownload('tugas.pdf');
     }
 
     public function test_mahasiswa_dapat_mengumpulkan_ulang_tugas(): void
     {
-        $disk = config('filesystems.default');
+        $disk = 'local';
         Storage::fake($disk);
 
         [$mahasiswa, $assignment] =
@@ -130,11 +143,15 @@ class SubmissionFormTest extends TestCase
 
         Storage::disk($disk)->assertExists($updated->file_path);
         Storage::disk($disk)->assertMissing($oldPath);
+        $this->assertSame([], Storage::disk('public')->allFiles());
+
+        $this->get(route('submissions.download', $updated))
+            ->assertOk()->assertDownload('tugas-revisi.pdf');
     }
 
     public function test_berkas_dengan_tipe_tidak_valid_ditolak(): void
     {
-        Storage::fake(config('filesystems.default'));
+        Storage::fake('local');
 
         [$mahasiswa, $assignment] =
             $this->createEnrolledStudentAssignment();
@@ -156,7 +173,7 @@ class SubmissionFormTest extends TestCase
 
     public function test_berkas_lebih_dari_5_mb_ditolak(): void
     {
-        Storage::fake(config('filesystems.default'));
+        Storage::fake('local');
 
         [$mahasiswa, $assignment] =
             $this->createEnrolledStudentAssignment();
@@ -178,7 +195,7 @@ class SubmissionFormTest extends TestCase
 
     public function test_pengumpulan_terlambat_ditolak_jika_tidak_diizinkan(): void
     {
-        Storage::fake(config('filesystems.default'));
+        Storage::fake('local');
 
         [$mahasiswa, $assignment] =
             $this->createEnrolledStudentAssignment([
@@ -203,7 +220,7 @@ class SubmissionFormTest extends TestCase
 
     public function test_pengumpulan_terlambat_diterima_jika_diizinkan(): void
     {
-        $disk = config('filesystems.default');
+        $disk = 'local';
         Storage::fake($disk);
 
         [$mahasiswa, $assignment] =

@@ -43,7 +43,8 @@ class MaterialController extends Controller
                 'required_if:type,file',
                 'nullable',
                 'file',
-                'mimes:pdf,pptx',
+                'mimes:pdf,pptx,docx',
+                'max:20480',
             ],
             'external_url' => [
                 'required_if:type,link',
@@ -64,7 +65,7 @@ class MaterialController extends Controller
         if ($validated['type'] === 'file') {
             $file = $request->file('file');
 
-            $data['file_path'] = $file->store('materials');
+            $data['file_path'] = $file->store('materials', 'local');
             $data['original_name'] = $file->getClientOriginalName();
             $data['file_size'] = $file->getSize();
             $data['mime_type'] = $file->getMimeType();
@@ -92,6 +93,25 @@ class MaterialController extends Controller
         return view('materials.show', compact('material', 'course'));
     }
 
+    public function download(Material $material)
+    {
+        Gate::authorize('view', $material);
+
+        abort_unless(
+            $material->type === 'file' && filled($material->file_path),
+            404
+        );
+
+        $disk = Storage::disk('local');
+
+        abort_unless($disk->exists($material->file_path), 404);
+
+        return $disk->download(
+            $material->file_path,
+            $material->original_name ?: basename($material->file_path)
+        );
+    }
+
     public function edit(Material $material)
     {
         Gate::authorize('update', $material);
@@ -116,7 +136,8 @@ class MaterialController extends Controller
                 ),
                 'nullable',
                 'file',
-                'mimes:pdf,pptx',
+                'mimes:pdf,pptx,docx',
+                'max:20480',
             ],
             'external_url' => [
                 'required_if:type,link',
@@ -133,12 +154,12 @@ class MaterialController extends Controller
         if ($validated['type'] === 'file') {
             if ($request->hasFile('file')) {
                 if ($material->file_path) {
-                    Storage::delete($material->file_path);
+                    Storage::disk('local')->delete($material->file_path);
                 }
 
                 $file = $request->file('file');
 
-                $material->file_path = $file->store('materials');
+                $material->file_path = $file->store('materials', 'local');
                 $material->original_name = $file->getClientOriginalName();
                 $material->file_size = $file->getSize();
                 $material->mime_type = $file->getMimeType();
@@ -147,7 +168,7 @@ class MaterialController extends Controller
             $material->external_url = null;
         } else {
             if ($material->file_path) {
-                Storage::delete($material->file_path);
+                Storage::disk('local')->delete($material->file_path);
             }
 
             $material->file_path = null;
@@ -175,7 +196,7 @@ class MaterialController extends Controller
         $course = $material->course;
 
         if ($material->file_path) {
-            Storage::delete($material->file_path);
+            Storage::disk('local')->delete($material->file_path);
         }
 
         $material->delete();

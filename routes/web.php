@@ -68,6 +68,11 @@ Route::middleware('auth')->group(function () {
         'download',
     ])->name('submissions.download');
 
+    Route::get('/materials/{material}/download', [
+        MaterialController::class,
+        'download',
+    ])->name('materials.download');
+
     Route::get('/dashboard', function () {
         return view('welcome');
     })->name('dashboard');

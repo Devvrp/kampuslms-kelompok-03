@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DeletesStoredFiles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 class Assignment extends Model
 {
     use HasFactory;
+    use DeletesStoredFiles;
 
     protected $fillable = [
         'course_id',
@@ -47,5 +49,17 @@ class Assignment extends Model
             Grade::class,
             Submission::class
         );
+    }
+
+    /**
+     * File submission ikut dibersihkan ketika tugas dihapus,
+     * termasuk ketika database melakukan cascade.
+     */
+    protected function storedFilePathsForDeletion(): array
+    {
+        return $this->submissions()
+            ->whereNotNull('file_path')
+            ->pluck('file_path')
+            ->all();
     }
 }

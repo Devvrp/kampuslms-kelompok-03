@@ -28,17 +28,20 @@ class AssignmentSubmissionService
             ]);
         }
 
-        // Submission harus tetap privat meskipun disk default diubah ke public.
+        // Penyimpanan tetap privat pada disk local.
         $disk = 'local';
 
         $existingSubmission = $assignment->submissions()
             ->where('user_id', $student->id)
             ->first();
 
+        // UploadedFile::store menghasilkan nama fisik baru.
         $newFilePath = $file->store('submissions', $disk);
 
         if (! $newFilePath) {
-            throw new \RuntimeException('Berkas tugas gagal disimpan.');
+            throw new \RuntimeException(
+                'Berkas tugas gagal disimpan.'
+            );
         }
 
         try {
@@ -50,6 +53,7 @@ class AssignmentSubmissionService
                     'file_path' => $newFilePath,
                     'original_name' => $file->getClientOriginalName(),
                     'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
                     'note' => $note,
                     'submitted_at' => $submittedAt,
                     'is_late' => $isLate,
@@ -61,6 +65,7 @@ class AssignmentSubmissionService
             throw $exception;
         }
 
+        // File lama dihapus setelah record berhasil disimpan.
         if (
             $existingSubmission &&
             $existingSubmission->file_path !== $newFilePath

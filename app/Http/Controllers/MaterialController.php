@@ -32,40 +32,51 @@ class MaterialController extends Controller
     }
 
     public function store(Request $request, Course $course)
-    {
-        Gate::authorize('create', [Material::class, $course]);
+{
+    Gate::authorize('create', [Material::class, $course]);
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', new MaxTextBytes],
-            'type' => ['required', 'in:file,link'],
-            'file' => [
-                'required_if:type,file',
-                'nullable',
-                'file',
-                'mimes:pdf,pptx,docx',
-                'max:20480',
-            ],
-            'external_url' => [
-                'required_if:type,link',
-                'nullable',
-                'url',
-                'max:255',
-            ],
-        ]);
+    $validated = $request->validate([
+        'title' => ['required', 'string', 'max:255'],
+        'description' => ['nullable', 'string', new MaxTextBytes],
+        'type' => ['required', 'in:file,link'],
+        'file' => [
+            'required_if:type,file',
+            'nullable',
+            'file',
+            'mimes:pdf,pptx,docx',
+            'max:20480',
+        ],
+        'external_url' => [
+            'required_if:type,link',
+            'nullable',
+            'url',
+            'max:255',
+        ],
+    ]);
 
-        $data = [
-            'course_id' => $course->id,
-            'uploaded_by' => Auth::id(),
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'type' => $validated['type'],
-        ];
+    $data = [
+        'course_id' => $course->id,
+        'uploaded_by' => Auth::id(),
+        'title' => $validated['title'],
+        'description' => $validated['description'] ?? null,
+        'type' => $validated['type'],
+    ];
 
+    $storedPath = null;
+
+    try {
         if ($validated['type'] === 'file') {
             $file = $request->file('file');
 
-            $data['file_path'] = $file->store('materials', 'local');
+            $storedPath = $file->store('materials', 'local');
+
+            if (! $storedPath) {
+                throw new RuntimeException(
+                    'Berkas materi gagal disimpan.'
+                );
+            }
+
+            $data['file_path'] = $storedPath;
             $data['original_name'] = $file->getClientOriginalName();
             $data['file_size'] = $file->getSize();
             $data['mime_type'] = $file->getMimeType();
@@ -74,15 +85,23 @@ class MaterialController extends Controller
         }
 
         Material::create($data);
+    } catch (Throwable $exception) {
+        // Hindari file yatim jika penyimpanan record gagal.
+        if ($storedPath) {
+            Storage::disk('local')->delete($storedPath);
+        }
 
-        $routePrefix = Auth::user()->role === 'admin'
-            ? 'admin'
-            : 'dosen';
-
-        return redirect()
-            ->route("{$routePrefix}.courses.materials.index", $course)
-            ->with('success', 'Materi berhasil ditambahkan.');
+        throw $exception;
     }
+
+    $routePrefix = Auth::user()->role === 'admin'
+        ? 'admin'
+        : 'dosen';
+
+    return redirect()
+        ->route("{$routePrefix}.courses.materials.index", $course)
+        ->with('success', 'Materi berhasil ditambahkan.');
+}
 
     public function show(Material $material)
     {
@@ -122,55 +141,60 @@ class MaterialController extends Controller
     }
 
     public function update(Request $request, Material $material)
-    {
-        Gate::authorize('update', $material);
+{
+    Gate::authorize('update', $material);
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', new MaxTextBytes],
-            'type' => ['required', 'in:file,link'],
-            'file' => [
-                Rule::requiredIf(
-                    $request->input('type') === 'file'
-                    && ! $material->file_path
-                ),
-                'nullable',
-                'file',
-                'mimes:pdf,pptx,docx',
-                'max:20480',
-            ],
-            'external_url' => [
-                'required_if:type,link',
-                'nullable',
-                'url',
-                'max:255',
-            ],
-        ]);
+    $validated = $request->validate([
+        'title' => ['required', 'string', 'max:255'],
+        'description' => ['nullable', 'string', new MaxTextBytes],
+        'type' => ['required', 'in:file,link'],
+        'file' => [
+            Rule::requiredIf(
+                $request->input('type') === 'file'
+                && ! $material->file_path
+            ),
+            'nullable',
+            'file',
+            'mimes:pdf,pptx,docx',
+            'max:20480',
+        ],
+        'external_url' => [
+            'required_if:type,link',
+            'nullable',
+            'url',
+            'max:255',
+        ],
+    ]);
 
-        $material->title = $validated['title'];
-        $material->description = $validated['description'] ?? null;
-        $material->type = $validated['type'];
+    $oldPath = $material->file_path;
+    $newPath = null;
 
+    $material->title = $validated['title'];
+    $material->description = $validated['description'] ?? null;
+    $material->type = $validated['type'];
+
+    try {
         if ($validated['type'] === 'file') {
             if ($request->hasFile('file')) {
-                if ($material->file_path) {
-                    Storage::disk('local')->delete($material->file_path);
-                }
-
                 $file = $request->file('file');
 
-                $material->file_path = $file->store('materials', 'local');
-                $material->original_name = $file->getClientOriginalName();
+                $newPath = $file->store('materials', 'local');
+
+                if (! $newPath) {
+                    throw new RuntimeException(
+                        'Berkas materi gagal disimpan.'
+                    );
+                }
+
+                $material->file_path = $newPath;
+                $material->original_name =
+                    $file->getClientOriginalName();
                 $material->file_size = $file->getSize();
                 $material->mime_type = $file->getMimeType();
             }
 
             $material->external_url = null;
         } else {
-            if ($material->file_path) {
-                Storage::disk('local')->delete($material->file_path);
-            }
-
             $material->file_path = null;
             $material->original_name = null;
             $material->file_size = null;
@@ -179,34 +203,44 @@ class MaterialController extends Controller
         }
 
         $material->save();
-
-        $routePrefix = Auth::user()->role === 'admin'
-            ? 'admin'
-            : 'dosen';
-
-        return redirect()
-            ->route("{$routePrefix}.materials.show", $material)
-            ->with('success', 'Materi berhasil diperbarui.');
-    }
-
-    public function destroy(Material $material)
-    {
-        Gate::authorize('delete', $material);
-
-        $course = $material->course;
-
-        if ($material->file_path) {
-            Storage::disk('local')->delete($material->file_path);
+    } catch (Throwable $exception) {
+        // Record lama tetap menunjuk ke file lama jika save gagal.
+        if ($newPath) {
+            Storage::disk('local')->delete($newPath);
         }
 
-        $material->delete();
-
-        $routePrefix = Auth::user()->role === 'admin'
-            ? 'admin'
-            : 'dosen';
-
-        return redirect()
-            ->route("{$routePrefix}.courses.materials.index", $course)
-            ->with('success', 'Materi berhasil dihapus.');
+        throw $exception;
     }
+
+    // Hapus file lama hanya setelah perubahan record berhasil.
+    if ($oldPath && $oldPath !== $material->file_path) {
+        Storage::disk('local')->delete($oldPath);
+    }
+
+    $routePrefix = Auth::user()->role === 'admin'
+        ? 'admin'
+        : 'dosen';
+
+    return redirect()
+        ->route("{$routePrefix}.materials.show", $material)
+        ->with('success', 'Materi berhasil diperbarui.');
+}
+
+    public function destroy(Material $material)
+{
+    Gate::authorize('delete', $material);
+
+    $course = $material->course;
+
+    // Event model menghapus file setelah record berhasil dihapus.
+    $material->delete();
+
+    $routePrefix = Auth::user()->role === 'admin'
+        ? 'admin'
+        : 'dosen';
+
+    return redirect()
+        ->route("{$routePrefix}.courses.materials.index", $course)
+        ->with('success', 'Materi berhasil dihapus.');
+}
 }

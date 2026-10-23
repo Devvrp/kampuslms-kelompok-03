@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\AssignmentPublished;
 use App\Models\Concerns\DeletesStoredFiles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,8 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Assignment extends Model
 {
-    use HasFactory;
     use DeletesStoredFiles;
+    use HasFactory;
 
     protected $fillable = [
         'course_id',
@@ -31,6 +32,21 @@ class Assignment extends Model
             'due_at' => 'datetime',
             'allow_late' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Assignment $assignment): void {
+            if ($assignment->status === 'published') {
+                AssignmentPublished::dispatch($assignment->id);
+            }
+        });
+
+        static::updated(function (Assignment $assignment): void {
+            if ($assignment->status === 'published' && $assignment->wasChanged('status')) {
+                AssignmentPublished::dispatch($assignment->id);
+            }
+        });
     }
 
     public function course(): BelongsTo

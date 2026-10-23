@@ -297,7 +297,7 @@ class MaterialWebTest extends TestCase
                 'type' => 'file',
                 'file' => $file,
             ])->assertRedirect(route('dosen.courses.materials.index', $this->course))
-              ->assertSessionHasNoErrors();
+                ->assertSessionHasNoErrors();
         }
 
         $this->assertDatabaseCount('materials', 3);
@@ -430,4 +430,25 @@ class MaterialWebTest extends TestCase
         $this->get(route('materials.download', $missing))->assertNotFound();
     }
 
+    public function test_record_failure_removes_uploaded_file(): void
+    {
+        Material::creating(function (): void {
+            throw new \RuntimeException('Record failed');
+        });
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->post(route('dosen.courses.materials.store', $this->course), [
+                'title' => 'PDF', 'type' => 'file',
+                'file' => UploadedFile::fake()->create('materi.pdf', 1, 'application/pdf'),
+            ]);
+            $this->fail('The storage exception should be propagated.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Record failed', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('materials', 0);
+        $this->assertDatabaseCount('notifications', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles('materials'));
+    }
 }

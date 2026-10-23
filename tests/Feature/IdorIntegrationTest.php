@@ -356,8 +356,14 @@ class IdorIntegrationTest extends TestCase
         $foreign = $this->fixtureNotification($foreignOwner);
         Sanctum::actingAs($owner);
         $before = $this->databaseSnapshot();
-        $list = $this->getJson('/api/v1/notifications')->assertOk()->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $own)->assertJsonPath('data.0.data.message', 'Notifikasi privat '.$owner->name);
+        $list = $this->getJson('/api/v1/notifications')->assertOk()
+            ->assertJsonFragment(['id' => $own])
+            ->assertJsonFragment(['message' => 'Notifikasi privat '.$owner->name]);
+        // Fixture tugas published kini juga menghasilkan notifikasi M3.
+        $this->assertEqualsCanonicalizing(
+            $owner->notifications()->pluck('id')->all(),
+            array_column($list->json('data'), 'id'),
+        );
         $this->assertResponseExcludesSecrets($list, [$foreign, 'Notifikasi privat '.$foreignOwner->name]);
         $this->postJson('/api/v1/notifications/'.$foreign.'/read')->assertForbidden()
             ->assertExactJson(['message' => 'Anda tidak memiliki akses ke sumber daya ini.']);

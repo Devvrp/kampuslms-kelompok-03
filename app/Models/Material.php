@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Material extends Model
 {
-    use HasFactory;
     use DeletesStoredFiles;
+    use HasFactory;
 
     protected $fillable = [
         'course_id',

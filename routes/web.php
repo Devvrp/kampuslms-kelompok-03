@@ -191,6 +191,9 @@ Route::middleware('auth')->group(function () {
         ->name('mahasiswa.')
         ->group(function () {
 
+            Route::view('notifications', 'notifications.index')
+                ->name('notifications.index');
+
         Route::get(
             'courses',
             [CourseController::class, 'studentIndex']

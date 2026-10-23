@@ -63,6 +63,16 @@ Route::post('/logout', [
 
 Route::middleware('auth')->group(function () {
 
+    Route::get('/submissions/{submission}/download', [
+        SubmissionController::class,
+        'download',
+    ])->name('submissions.download');
+
+    Route::get('/materials/{material}/download', [
+        MaterialController::class,
+        'download',
+    ])->name('materials.download');
+
     Route::get('/dashboard', function () {
         return view('welcome');
     })->name('dashboard');
@@ -180,6 +190,14 @@ Route::middleware('auth')->group(function () {
         ->prefix('mahasiswa')
         ->name('mahasiswa.')
         ->group(function () {
+
+            Route::view('notifications', 'notifications.index')
+                ->name('notifications.index');
+
+        Route::get(
+            'courses',
+            [CourseController::class, 'studentIndex']
+        )->name('courses.index');
 
             Route::scopeBindings()->group(function () {
 

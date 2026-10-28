@@ -72,6 +72,7 @@ class GradeSubmissionForm extends Component
             'feedback' => [
                 'nullable',
                 'string',
+                'max:5000',
             ],
         ], [
             'score.required' => 'Nilai wajib diisi.',
@@ -79,6 +80,7 @@ class GradeSubmissionForm extends Component
             'score.min' => 'Nilai tidak boleh kurang dari 0.',
             'score.max' => 'Nilai tidak boleh lebih dari 100.',
             'feedback.string' => 'Feedback harus berupa teks.',
+            'feedback.max' => 'Feedback tidak boleh lebih dari 5000 karakter.',
         ]);
 
         Grade::updateOrCreate(

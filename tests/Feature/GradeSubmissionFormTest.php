@@ -267,4 +267,28 @@ class GradeSubmissionFormTest extends TestCase
             'submission_id' => $submission->id,
         ]);
     }
+
+    public function test_feedback_lebih_dari_5000_karakter_ditolak(): void
+    {
+        $dosen = User::factory()->create([
+            'role' => 'dosen',
+        ]);
+
+        $submission = $this->createSubmissionFor($dosen);
+
+        Livewire::actingAs($dosen)
+            ->test(GradeSubmissionForm::class, [
+                'submission' => $submission,
+            ])
+            ->set('score', '80')
+            ->set('feedback', str_repeat('a', 5001))
+            ->call('save')
+            ->assertHasErrors([
+                'feedback' => 'max',
+            ]);
+
+        $this->assertDatabaseMissing('grades', [
+            'submission_id' => $submission->id,
+        ]);
+    }
 }

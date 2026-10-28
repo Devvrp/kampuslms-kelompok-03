@@ -170,7 +170,6 @@
                         :submission="$submission"
                     />
                 @endif
-                </div>
 
             </div>
 

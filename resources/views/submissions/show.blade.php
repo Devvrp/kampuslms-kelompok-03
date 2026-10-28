@@ -164,6 +164,14 @@
                     @endif
                 </div>
 
+                {{-- Form penilaian khusus dosen --}}
+                @if (auth()->user()->role === 'dosen')
+                    <livewire:dosen.grade-submission-form
+                        :submission="$submission"
+                    />
+                @endif
+                </div>
+
             </div>
 
             {{-- Navigasi kembali --}}

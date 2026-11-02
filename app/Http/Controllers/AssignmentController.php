@@ -15,28 +15,29 @@ class AssignmentController extends Controller
 {
     $user = Auth::user();
 
-    Gate::authorize('viewAny', [Assignment::class, $course]);
-
-    $query = $course->assignments()
-        ->with('course');
-
     if ($user->role === 'mahasiswa') {
-        $query->where('status', 'published')
-            ->with([
-                'course.students' => fn ($students) =>
-                    $students->whereKey($user->getKey()),
-            ]);
+        $course->loadMissing([
+            'students' => fn ($students) =>
+                $students->whereKey($user->getKey()),
+        ]);
     }
 
-    $assignments = $query
+    Gate::authorize('viewAny', [Assignment::class, $course]);
+
+    $assignments = $course->assignments()
+        ->when(
+            $user->role === 'mahasiswa',
+            fn ($query) => $query->where('status', 'published')
+        )
         ->orderBy('due_at')
         ->paginate(15)
         ->withQueryString();
 
-    return view(
-        'assignments.index',
-        compact('course', 'assignments')
-    );
+    $assignments->getCollection()->each(function ($assignment) use ($course) {
+        $assignment->setRelation('course', $course);
+    });
+
+    return view('assignments.index', compact('course', 'assignments'));
 }
 
     public function create(Course $course)

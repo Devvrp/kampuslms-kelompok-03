@@ -13,23 +13,27 @@ class AssignmentPolicy
      * boleh melihat daftar tugas suatu mata kuliah.
      */
     public function viewAny(User $user, Course $course): bool
-    {
-        if ($user->role === 'admin') {
-            return true;
-        }
-
-        if ($user->role === 'dosen') {
-            return (int) $course->lecturer_id === (int) $user->id;
-        }
-
-        if ($user->role === 'mahasiswa') {
-            return $user->courses()
-                ->whereKey($course->getKey())
-                ->exists();
-        }
-
-        return false;
+{
+    if ($user->role === 'admin') {
+        return true;
     }
+
+    if ($user->role === 'dosen') {
+        return (int) $course->lecturer_id === (int) $user->id;
+    }
+
+    if ($user->role === 'mahasiswa') {
+        if ($course->relationLoaded('students')) {
+            return $course->students->contains('id', $user->getKey());
+        }
+
+        return $user->courses()
+            ->whereKey($course->getKey())
+            ->exists();
+    }
+
+    return false;
+}
 
     /**
      * Admin dan dosen pemilik dapat melihat tugas.

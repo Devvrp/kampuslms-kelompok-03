@@ -21,15 +21,11 @@ class SubmissionController extends Controller
 
         $course = $assignment->course;
 
-        $submissions = $assignment->submissions()
-            ->with(['student', 'grade'])
-            ->latest('submitted_at')
-            ->get();
-
+        // Data mahasiswa dan submission dimuat oleh Livewire.
+        // Hal ini mencegah pengambilan data yang sama dua kali.
         return view('submissions.index', compact(
             'assignment',
-            'course',
-            'submissions'
+            'course'
         ));
     }
 
@@ -37,6 +33,7 @@ class SubmissionController extends Controller
     {
         Gate::authorize('view', $submission);
 
+        // Mengambil relasi sekaligus untuk menghindari N+1 query.
         $submission->load([
             'assignment.course',
             'student',

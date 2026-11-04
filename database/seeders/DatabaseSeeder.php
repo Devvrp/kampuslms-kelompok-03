@@ -307,7 +307,6 @@ class DatabaseSeeder extends Seeder
                                 'file_path' => "submissions/demo/assignment-{$assignment->id}/student-{$student->id}.pdf",
                                 'original_name' => "jawaban-{$student->id}.pdf",
                                 'file_size' => 250000 + (($student->id * 1000) % 4500000),
-                                'mime_type' => 'application/pdf',
                                 'note' => null,
                                 'submitted_at' => $submittedAt,
                                 'is_late' => $isLate,

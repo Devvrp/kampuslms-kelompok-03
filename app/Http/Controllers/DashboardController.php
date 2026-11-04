@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assignment;
+use App\Models\Submission;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -14,7 +15,48 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        // Dashboard khusus mahasiswa.
+        // Dashboard khusus dosen.
+        if ($user->role === 'dosen') {
+            // Menghitung mata kuliah yang diampu dosen.
+            $lecturerCourseCount = $user->taughtCourses()->count();
+
+            // Mengambil submission dari mata kuliah milik dosen.
+            $lecturerSubmissions = Submission::query()
+                ->whereHas('assignment.course', function ($query) use ($user) {
+                    $query->where('lecturer_id', $user->id);
+                });
+
+            // Menghitung submission yang belum dinilai.
+            $pendingGradingCount = (clone $lecturerSubmissions)
+                ->whereDoesntHave('grade')
+                ->count();
+
+            // Menghitung submission yang sudah dinilai.
+            $gradedSubmissionCount = (clone $lecturerSubmissions)
+                ->whereHas('grade')
+                ->count();
+
+            // Mengambil lima submission terbaru yang belum dinilai.
+            $recentPendingSubmissions = (clone $lecturerSubmissions)
+                ->whereDoesntHave('grade')
+                ->with([
+                    'student:id,name',
+                    'assignment:id,course_id,title',
+                    'assignment.course:id,code,name',
+                ])
+                ->orderByDesc('submitted_at')
+                ->limit(5)
+                ->get();
+
+            return view('welcome', compact(
+                'lecturerCourseCount',
+                'pendingGradingCount',
+                'gradedSubmissionCount',
+                'recentPendingSubmissions'
+            ));
+        }
+
+        // Dashboard selain dosen dan mahasiswa.
         if ($user->role !== 'mahasiswa') {
             return view('welcome');
         }

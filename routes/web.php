@@ -14,14 +14,9 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsurePublishedAssignment;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('root');
+Route::view('/', 'welcome')->name('root');
 
-Route::get('/tentang', function () {
-    return view('tentang');
-})->name('tentang');
-
+Route::view('/tentang', 'tentang')->name('tentang');
 // Autentikasi.
 Route::middleware('guest')->group(function () {
     Route::get('/login', [

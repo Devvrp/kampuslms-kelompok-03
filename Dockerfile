@@ -58,8 +58,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 # Configure PHP upload and execution limits
 RUN { \
-    echo 'upload_max_filesize=10M'; \
-    echo 'post_max_size=12M'; \
+    echo 'upload_max_filesize=25M'; \
+    echo 'post_max_size=27M'; \
     echo 'max_file_uploads=20'; \
     echo 'memory_limit=256M'; \
     echo 'max_execution_time=60'; \

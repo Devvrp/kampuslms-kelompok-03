@@ -116,5 +116,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/up || exit 1
 
-# Start PHP-FPM and Nginx
-CMD ["sh", "-c", "mkdir -p /var/www/html/storage/app/private && chown www-data:www-data /var/www/html/storage/app/private && php-fpm -D && exec nginx -g 'daemon off;'"]
+# Start Laravel optimization, PHP-FPM, and Nginx
+CMD ["sh", "-c", "set -e; mkdir -p /var/www/html/storage/app/private; chown www-data:www-data /var/www/html/storage/app/private; php artisan optimize; if [ ! -L /var/www/html/public/storage ]; then php artisan storage:link; fi; php-fpm -D; exec nginx -g 'daemon off;'"]

@@ -4,7 +4,7 @@
 
 ----
 
-### READ
+### READ Minggu 6
 
 ### 1. Jalankan php artisan install:api. Baca perubahan yang terjadi di bootstrap/app.php.
 
@@ -73,7 +73,7 @@ Jadi, daftar route sudah sesuai kontrak. Pengecekan hanya sampai tingkat route. 
 
 ---
 
-### BREAK Tujuh Kerusakan
+### BREAK Minggu 6
 
 ### 1. Kembalikan `response()->json(User::all())`, lalu hapus `$hidden`
 

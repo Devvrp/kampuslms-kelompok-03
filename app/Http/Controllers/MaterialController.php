@@ -130,7 +130,11 @@ class MaterialController extends Controller
 
         return $disk->download(
             $material->file_path,
-            $material->original_name ?: basename($material->file_path)
+            $material->original_name ?: basename($material->file_path),
+            [
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
         );
     }
 

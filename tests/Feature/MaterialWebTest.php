@@ -333,6 +333,7 @@ class MaterialWebTest extends TestCase
     {
         $path = 'materials/materi.pdf';
         Storage::disk('local')->put($path, 'isi materi');
+
         $material = $this->course->materials()->create([
             'uploaded_by' => $this->owner->id,
             'title' => 'Materi PDF',
@@ -342,13 +343,20 @@ class MaterialWebTest extends TestCase
             'file_size' => strlen('isi materi'),
             'mime_type' => 'application/pdf',
         ]);
+
         $student = User::factory()->create(['role' => 'mahasiswa']);
         $student->courses()->attach($this->course, ['enrolled_at' => now()]);
 
-        $this->actingAs($student)
+        $response = $this->actingAs($student)
             ->get(route('materials.download', $material))
             ->assertOk()
-            ->assertDownload('materi.pdf');
+            ->assertDownload('materi.pdf')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        $cacheControl = $response->headers->get('Cache-Control');
+
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('no-store', $cacheControl);
     }
 
     public function test_unenrolled_student_cannot_download_private_material(): void

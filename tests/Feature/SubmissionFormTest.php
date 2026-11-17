@@ -249,4 +249,25 @@ class SubmissionFormTest extends TestCase
         $this->assertTrue($submission->is_late);
         Storage::disk($disk)->assertExists($submission->file_path);
     }
+
+    public function test_component_rechecks_enrollment_after_access_is_revoked(): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        $component = Livewire::actingAs($mahasiswa)
+            ->test(SubmissionForm::class, [
+                'assignment' => $assignment,
+            ]);
+
+        // Mahasiswa dikeluarkan dari mata kuliah.
+        $assignment->course->students()->detach($mahasiswa->id);
+
+        // Render ulang harus ditolak.
+        $component
+            ->set('note', 'Percobaan setelah dikeluarkan.')
+            ->assertStatus(403);
+
+        $this->assertDatabaseCount('submissions', 0);
+    }
 }

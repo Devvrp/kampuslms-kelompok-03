@@ -79,6 +79,11 @@ class SubmissionForm extends Component
 
     public function render()
     {
+        Gate::authorize('create', [
+            Submission::class,
+            $this->assignment,
+        ]);
+
         $existingSubmission = $this->assignment
             ->submissions()
             ->where('user_id', auth()->id())

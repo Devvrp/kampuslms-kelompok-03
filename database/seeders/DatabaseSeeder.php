@@ -58,10 +58,11 @@ class DatabaseSeeder extends Seeder
 
             // Memperbarui akun demo yang sudah ada, termasuk yang soft-deleted.
             $upsertUser = function (array $identity, array $attributes) use ($password): User {
-                $user = User::withTrashed()->updateOrCreate(
-                    $identity,
-                    array_merge($attributes, ['password' => $password])
-                );
+                $user = User::withTrashed()->firstOrNew($identity);
+
+                $user->forceFill(array_merge($attributes, [
+                    'password' => $password,
+                ]))->save();
 
                 if ($user->trashed()) {
                     $user->restore();

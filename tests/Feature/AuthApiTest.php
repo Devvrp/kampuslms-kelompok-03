@@ -104,4 +104,28 @@ class AuthApiTest extends TestCase
             'id' => $tokenId,
         ]);
     }
+
+    public function test_api_login_accepts_existing_password_longer_than_72_bytes(): void
+    {
+        $password = str_repeat('a', 73);
+
+        $user = User::factory()->create([
+            'email' => 'legacy-password@kampuslms.test',
+            'password' => Hash::make($password),
+            'role' => 'dosen',
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => $password,
+            'device_name' => 'legacy-password-test',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.user.email', $user->email)
+            ->assertJsonStructure([
+                'data' => ['token', 'user'],
+            ]);
+    }
 }

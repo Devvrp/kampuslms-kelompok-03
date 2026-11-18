@@ -10,8 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
-
 class SubmissionApiTest extends TestCase
 {
     use RefreshDatabase;
@@ -328,5 +328,164 @@ class SubmissionApiTest extends TestCase
         )->assertUnprocessable()->assertJsonValidationErrors('file');
 
         $this->assertDatabaseCount('submissions', 0);
+    }
+
+    public static function oversizedSubmissionNotes(): array
+    {
+        return [
+            'ASCII 65536 bytes' => [str_repeat('a', 65536)],
+            'UTF-8 65536 bytes' => [str_repeat('é', 32768)],
+        ];
+    }
+
+    #[DataProvider('oversizedSubmissionNotes')]
+    public function test_oversized_submission_note_is_rejected_without_writes(string $note): void
+    {
+        Storage::fake('local');
+
+        $dosen = User::factory()->create(['role' => 'dosen']);
+        $mahasiswa = User::factory()->create(['role' => 'mahasiswa']);
+        $course = Course::factory()->create(['lecturer_id' => $dosen->id]);
+
+        $course->students()->attach($mahasiswa->id, [
+            'enrolled_at' => now(),
+        ]);
+
+        $assignment = Assignment::factory()->create([
+            'course_id' => $course->id,
+            'created_by' => $dosen->id,
+            'status' => 'published',
+            'due_at' => now()->addDays(7),
+            'allow_late' => true,
+        ]);
+
+        Sanctum::actingAs($mahasiswa);
+
+        $this->postJson(
+            "/api/v1/assignments/{$assignment->id}/submissions",
+            [
+                'file' => UploadedFile::fake()->create(
+                    'tugas.pdf',
+                    500,
+                    'application/pdf'
+                ),
+                'note' => $note,
+            ]
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('note');
+
+        $this->assertDatabaseCount('submissions', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_api_accepts_submission_note_at_byte_limit(): void
+    {
+        Storage::fake('local');
+
+        $dosen = User::factory()->create(['role' => 'dosen']);
+        $mahasiswa = User::factory()->create(['role' => 'mahasiswa']);
+        $course = Course::factory()->create(['lecturer_id' => $dosen->id]);
+
+        $course->students()->attach($mahasiswa->id, [
+            'enrolled_at' => now(),
+        ]);
+
+        $assignment = Assignment::factory()->create([
+            'course_id' => $course->id,
+            'created_by' => $dosen->id,
+            'status' => 'published',
+            'due_at' => now()->addDays(7),
+            'allow_late' => true,
+        ]);
+
+        $note = str_repeat('é', 32767) . 'a';
+
+        Sanctum::actingAs($mahasiswa);
+
+        $response = $this->postJson(
+            "/api/v1/assignments/{$assignment->id}/submissions",
+            [
+                'file' => UploadedFile::fake()->create(
+                    'tugas.pdf',
+                    500,
+                    'application/pdf'
+                ),
+                'note' => $note,
+            ]
+        )->assertCreated();
+
+        $this->assertSame(
+            $note,
+            Submission::findOrFail($response->json('data.id'))->note
+        );
+    }
+
+    public function test_api_rejects_submission_file_name_over_255_characters_without_writes(): void
+    {
+        Storage::fake('local');
+
+        $dosen = User::factory()->create(['role' => 'dosen']);
+        $mahasiswa = User::factory()->create(['role' => 'mahasiswa']);
+        $course = Course::factory()->create(['lecturer_id' => $dosen->id]);
+
+        $course->students()->attach($mahasiswa->id, [
+            'enrolled_at' => now(),
+        ]);
+
+        $assignment = Assignment::factory()->create([
+            'course_id' => $course->id,
+            'created_by' => $dosen->id,
+            'status' => 'published',
+            'due_at' => now()->addDays(7),
+            'allow_late' => true,
+        ]);
+
+        Sanctum::actingAs($mahasiswa);
+
+        $this->postJson(
+            "/api/v1/assignments/{$assignment->id}/submissions",
+            [
+                'file' => $this->pdfWithOriginalName(
+                    str_repeat('a', 252) . '.pdf'
+                ),
+                'note' => 'Pengujian nama file panjang.',
+            ]
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('file');
+
+        $this->assertDatabaseCount('submissions', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    private function pdfWithOriginalName(string $originalName): UploadedFile
+    {
+        $fake = UploadedFile::fake()->create(
+            'short.pdf',
+            1,
+            'application/pdf'
+        );
+
+        return new class(
+            $fake->getPathname(),
+            $originalName
+        ) extends UploadedFile {
+            public function __construct(string $path, string $originalName)
+            {
+                parent::__construct(
+                    $path,
+                    $originalName,
+                    'application/pdf',
+                    UPLOAD_ERR_OK,
+                    true
+                );
+            }
+
+            public function getMimeType(): ?string
+            {
+                return 'application/pdf';
+            }
+        };
     }
 }

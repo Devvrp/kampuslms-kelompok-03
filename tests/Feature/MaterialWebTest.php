@@ -329,6 +329,31 @@ class MaterialWebTest extends TestCase
         $this->assertSame('link', $material->fresh()->type);
     }
 
+    public function test_original_file_name_over_255_characters_is_rejected_on_create_and_update(): void
+    {
+        $material = $this->material();
+        $longName = str_repeat('a', 252) . '.pdf';
+
+        $this->post(route('dosen.courses.materials.store', $this->course), [
+            'title' => 'Materi Baru',
+            'type' => 'file',
+            'file' => $this->pdfWithOriginalName($longName),
+        ])->assertSessionHasErrors('file');
+
+        $this->put(route('dosen.materials.update', $material), [
+            'title' => 'Materi Revisi',
+            'type' => 'file',
+            'file' => $this->pdfWithOriginalName($longName),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('materials', 1);
+        $this->assertSame('link', $material->fresh()->type);
+        $this->assertSame(
+            [],
+            Storage::disk('local')->allFiles('materials')
+        );
+    }
+
     public function test_enrolled_student_can_download_private_material(): void
     {
         $path = 'materials/materi.pdf';
@@ -459,5 +484,35 @@ class MaterialWebTest extends TestCase
         $this->assertDatabaseCount('materials', 0);
         $this->assertDatabaseCount('notifications', 0);
         $this->assertSame([], Storage::disk('local')->allFiles('materials'));
+    }
+
+    private function pdfWithOriginalName(string $originalName): UploadedFile
+    {
+        $fake = UploadedFile::fake()->create(
+            'short.pdf',
+            1,
+            'application/pdf'
+        );
+
+        return new class(
+            $fake->getPathname(),
+            $originalName
+        ) extends UploadedFile {
+            public function __construct(string $path, string $originalName)
+            {
+                parent::__construct(
+                    $path,
+                    $originalName,
+                    'application/pdf',
+                    UPLOAD_ERR_OK,
+                    true
+                );
+            }
+
+            public function getMimeType(): ?string
+            {
+                return 'application/pdf';
+            }
+        };
     }
 }

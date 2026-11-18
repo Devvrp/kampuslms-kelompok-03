@@ -614,4 +614,55 @@ class UserManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_create_user_with_password_over_72_bytes(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $password = str_repeat('a', 73);
+
+        $response = $this->actingAs($admin)->post(
+            route('admin.users.store'),
+            [
+                'name' => 'Pengguna Password Panjang',
+                'email' => 'password.panjang@example.com',
+                'nim_nip' => '20260099',
+                'role' => 'mahasiswa',
+                'password' => $password,
+                'password_confirmation' => $password,
+            ]
+        );
+
+        $response->assertSessionHasErrors('password');
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'password.panjang@example.com',
+        ]);
+    }
+
+    public function test_admin_cannot_update_user_with_password_over_72_bytes(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $target = User::factory()->create(['role' => 'mahasiswa']);
+
+        $originalPassword = $target->password;
+        $password = str_repeat('a', 73);
+
+        $response = $this->actingAs($admin)->put(
+            route('admin.users.update', $target),
+            [
+                'name' => $target->name,
+                'email' => $target->email,
+                'nim_nip' => $target->nim_nip,
+                'role' => $target->role,
+                'password' => $password,
+                'password_confirmation' => $password,
+            ]
+        );
+
+        $response->assertSessionHasErrors('password');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $target->id,
+            'password' => $originalPassword,
+        ]);
+    }
 }

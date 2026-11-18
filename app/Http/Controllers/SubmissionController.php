@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\Submission;
+use App\Rules\MaxTextBytes;
+use App\Rules\MaxOriginalFileNameLength;
 use App\Services\AssignmentSubmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -83,10 +85,12 @@ class SubmissionController extends Controller
                 'file',
                 'mimes:pdf,doc,docx',
                 'max:5120',
+                new MaxOriginalFileNameLength,
             ],
             'note' => [
                 'nullable',
                 'string',
+                new MaxTextBytes,
             ],
         ]);
 

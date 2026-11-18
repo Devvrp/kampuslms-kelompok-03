@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class WebAuthenticationTest extends TestCase
@@ -64,5 +65,24 @@ class WebAuthenticationTest extends TestCase
 
         $response->assertRedirect(route('login'));
         $this->assertGuest('web');
+    }
+
+    public function test_web_login_accepts_existing_password_longer_than_72_bytes(): void
+    {
+        $password = str_repeat('a', 73);
+
+        $user = User::factory()->create([
+            'email' => 'legacy-password@example.com',
+            'password' => Hash::make($password),
+        ]);
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => $password,
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+
+        $this->assertAuthenticatedAs($user, 'web');
     }
 }

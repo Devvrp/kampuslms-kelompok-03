@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Rules\MaxPasswordBytes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -203,8 +204,8 @@ class UserController extends Controller
     private function rules(?User $user = null): array
     {
         $passwordRules = $user
-            ? ['nullable', 'string', 'min:8', 'confirmed']
-            : ['required', 'string', 'min:8', 'confirmed'];
+            ? ['nullable', 'string', 'min:8', 'confirmed', new MaxPasswordBytes]
+            : ['required', 'string', 'min:8', 'confirmed', new MaxPasswordBytes];
 
         return [
             'name' => ['required', 'string', 'max:255'],

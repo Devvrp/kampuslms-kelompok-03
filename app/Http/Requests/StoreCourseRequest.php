@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Course;
+use App\Rules\MaxTextBytes;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -18,7 +19,11 @@ class StoreCourseRequest extends FormRequest
         return [
             'code' => ['required', 'string', 'max:20', 'unique:courses,code'],
             'name' => ['required', 'string', 'max:150'],
-            'description' => ['nullable', 'string'],
+            'description' => [
+                'nullable',
+                'string',
+                new MaxTextBytes,
+            ],
             'sks' => ['required', 'integer', 'between:1,6'],
             'lecturer_id' => [
                 'required',

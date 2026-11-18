@@ -138,4 +138,31 @@ class PasswordResetTest extends TestCase
             Hash::check('password-lama', $user->password)
         );
     }
+
+    public function test_user_cannot_reset_password_with_password_over_72_bytes(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'password-lama',
+        ]);
+
+        $token = Password::broker()->createToken($user);
+        $password = str_repeat('a', 73);
+
+        $response = $this->from(
+            route('password.reset', ['token' => $token])
+        )->post(route('password.store'), [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => $password,
+            'password_confirmation' => $password,
+        ]);
+
+        $response->assertSessionHasErrors('password');
+
+        $user->refresh();
+
+        $this->assertTrue(
+            Hash::check('password-lama', $user->password)
+        );
+    }
 }

@@ -7,6 +7,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // SQLite tidak mendukung ALTER TABLE ADD CONSTRAINT.
+        // Constraint tetap diterapkan pada MySQL/MariaDB.
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("
             ALTER TABLE grades
             ADD CONSTRAINT grades_score_range_chk
@@ -25,6 +31,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Tidak ada constraint yang ditambahkan pada SQLite.
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("
             ALTER TABLE grades
             DROP CHECK grades_feedback_length_chk

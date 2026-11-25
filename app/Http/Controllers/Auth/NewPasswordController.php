@@ -75,10 +75,8 @@ class NewPasswordController extends Controller
         }
 
         $message = match ($status) {
-            Password::INVALID_USER =>
-                'Email tidak valid atau tidak ditemukan.',
-            Password::INVALID_TOKEN =>
-                'Token reset tidak valid atau sudah kedaluwarsa.',
+            Password::INVALID_USER, Password::INVALID_TOKEN =>
+                'Tautan reset password tidak valid atau sudah kedaluwarsa.',
             Password::RESET_THROTTLED =>
                 'Permintaan terlalu sering. Silakan coba lagi nanti.',
             default =>

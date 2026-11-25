@@ -89,3 +89,82 @@ Angka tersebut merupakan hasil pengujian lokal pada saat dicatat. Jalankan kemba
 Route CRUD web untuk materi dan tugas admin telah didaftarkan dan pengujian integrasinya telah lulus melalui `AssignmentWebTest` dan `MaterialWebTest`.
 
 Pemeriksaan tetap perlu dilakukan jika route, middleware, Policy, controller, atau cakupan test berubah. Kelulusan test lokal tidak dengan sendirinya membuktikan bahwa CI GitHub telah lulus.
+
+
+## 8. Pengujian Anggota 2 — Enrollment, Materi, dan Pengumpulan Tugas
+
+Pengujian ini dilakukan untuk memastikan fitur enrollment,
+unggah materi, dan pengumpulan tugas berjalan sesuai
+dengan aturan hak akses dan validasi aplikasi.
+
+Pengujian menggunakan Laravel Feature Test dengan
+RefreshDatabase untuk mengisolasi data setiap pengujian
+dan Storage::fake('local') untuk mencegah file pengujian
+tersimpan pada penyimpanan asli aplikasi.
+
+### 8.1 Daftar Skenario Pengujian
+
+| No. | Fitur | Skenario Pengujian |
+|---|---|---|
+| 1 | Enrollment | Mahasiswa hanya dapat melihat mata kuliah yang diikutinya. |
+| 2 | Unggah Materi | Dosen pengampu berhasil mengunggah materi. |
+| 3 | Unggah Materi | Dosen lain ditolak ketika mengunggah materi. |
+| 4 | Pengumpulan Tugas | Mahasiswa terdaftar berhasil mengumpulkan tugas. |
+| 5 | Pengumpulan Tugas | Pengumpulan setelah deadline ditolak jika allow_late bernilai false. |
+| 6 | Pengumpulan Tugas | Mahasiswa yang tidak terdaftar ditolak ketika mengumpulkan tugas. |
+| 7 | Validasi | Format file yang tidak valid ditolak pada unggah materi dan pengumpulan tugas. |
+
+### 8.2 Pengamanan Penyimpanan File
+
+Pengujian unggah materi dan pengumpulan tugas menggunakan
+Storage::fake('local').
+
+Penggunaan penyimpanan palsu bertujuan agar file yang
+digunakan dalam pengujian tidak tersimpan sebagai file
+sungguhan pada penyimpanan aplikasi.
+
+Pemeriksaan dilakukan dengan memastikan:
+
+1. File berhasil tersimpan pada fake storage ketika unggahan valid.
+2. File tidak tersimpan ketika unggahan ditolak.
+3. File tidak tersimpan ketika validasi gagal.
+4. Tidak ada record materi atau submission ketika proses unggahan gagal.
+
+### 8.3 Hak Akses dan Validasi
+
+Pengujian enrollment memastikan mahasiswa hanya dapat
+melihat mata kuliah yang telah diikutinya.
+
+Pengujian materi memastikan hanya dosen pengampu yang
+dapat mengunggah materi pada mata kuliah tersebut.
+
+Pengujian pengumpulan tugas memastikan mahasiswa harus
+terdaftar pada mata kuliah terkait sebelum mengumpulkan tugas.
+
+Selain itu, sistem harus menolak pengumpulan setelah
+deadline apabila dosen tidak mengizinkan keterlambatan
+melalui pengaturan allow_late.
+
+Validasi file juga dilakukan untuk memastikan hanya
+format file yang diizinkan oleh aplikasi yang dapat diunggah.
+
+### 8.4 Menjalankan Pengujian
+
+Jalankan perintah berikut untuk menguji seluruh skenario
+Anggota 2:
+
+```bash
+php artisan test --env=testing tests/Feature/EnrollmentMaterialSubmissionFeatureTest.php
+```
+
+Pengujian tambahan yang sudah tersedia pada proyek:
+
+```bash
+php artisan test --env=testing tests/Feature/EnrollmentManagementTest.php
+php artisan test --env=testing tests/Feature/StudentCourseListTest.php
+php artisan test --env=testing tests/Feature/MaterialWebTest.php
+php artisan test --env=testing tests/Feature/SubmissionFormTest.php
+```
+
+Hasil pengujian harus dicatat berdasarkan hasil aktual
+ketika perintah dijalankan.

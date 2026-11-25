@@ -31,7 +31,7 @@ Dokumentasi ini berfokus pada otorisasi berbasis tiga peran:
 | No. | Titik rawan / skenario serangan | Kontrol pengamanan | Bukti test otomatis |
 | --- | --- | --- | --- |
 | 1 | Mahasiswa mengganti ID mata kuliah untuk membuka mata kuliah yang tidak diikutinya. | `CoursePolicy` memeriksa hak melihat mata kuliah; daftar course dibatasi berdasarkan peran dan relasi pengguna pada query. | `CourseApiTest`: mahasiswa hanya melihat mata kuliah yang diikuti dan ditolak saat membuka mata kuliah yang tidak diikuti. `PolicyAuthorizationTest`: `test_only_enrolled_students_can_view_course`. |
-| 2 | Dosen mengganti ID course untuk melihat atau mengubah mata kuliah milik dosen lain. | `CoursePolicy` membatasi tampilan berdasarkan kepemilikan dosen dan pengelolaan course kepada admin. Controller juga harus menjalankan otorisasi. | `CourseApiTest`: `dosen cannot view course owned by another dosen`. `CourseManagementTest`: `non admin cannot create update or delete courses`. |
+| 2 | Dosen mengganti ID course untuk melihat atau mengubah mata kuliah milik dosen lain. | `CoursePolicy` membatasi tampilan berdasarkan kepemilikan dosen dan pengelolaan course kepada admin. Controller juga harus menjalankan otorisasi. | `CourseApiTest`: dosen tidak dapat melihat course milik dosen lain. `CourseManagementTest::test_non_admin_cannot_create_update_or_delete_courses`: dosen dan mahasiswa ditolak melakukan operasi CRUD course khusus admin. |
 | 3 | Mahasiswa yang tidak terdaftar membuka materi melalui ID atau URL langsung. | `MaterialPolicy` memeriksa keanggotaan mata kuliah untuk akses mahasiswa. Controller menggunakan pemeriksaan otorisasi; daftar materi harus mengikuti cakupan course yang diakses. | `MaterialApiTest`: mahasiswa yang tidak terdaftar tidak dapat melihat materi. `MaterialWebTest`: `only enrolled students can read and students cannot manage materials`. `PolicyAuthorizationTest`: `test_unenrolled_students_cannot_view_materials`. |
 | 4 | Dosen membuka, membuat, mengubah, atau menghapus materi pada course milik dosen lain. | `MaterialPolicy` mengizinkan dosen pemilik mengelola materi course sendiri dan menolak dosen lain. Controller menggunakan Policy untuk pemeriksaan akses. | `MaterialWebTest`: `other lecturer cannot create edit update or delete materials`. `PolicyAuthorizationTest`: `test_admin_and_course_owner_can_manage_materials`. |
 | 5 | Mahasiswa mencoba melihat tugas yang belum dipublikasikan, termasuk dengan mengubah filter atau pagination. | `AssignmentPolicy` membatasi akses detail tugas mahasiswa; query daftar tugas mahasiswa hanya menampilkan status `published`. Filter tidak boleh menjadi cara untuk melewati otorisasi. | `AssignmentApiTest`: `students never receive drafts even with status filter or pagination`; `draft filter and counts do not disclose unpublished assignments` pada `Week6RegressionTest`. `AssignmentWebTest`: `enrolled student can only read published assignments and cannot manage them`. |
@@ -45,7 +45,25 @@ Dokumentasi ini berfokus pada otorisasi berbasis tiga peran:
 | 13 | Pengguna mengganti UUID notifikasi untuk membaca atau menandai notifikasi orang lain sebagai sudah dibaca. | Query dan pemeriksaan kepemilikan notifikasi harus terikat pada pengguna yang sedang terautentikasi, bukan hanya pada UUID yang dikirim. | `IdorIntegrationTest`: `notification uuid is authorized for each of four identities`; `NotificationApiTest`: pengguna hanya melihat notifikasinya sendiri dan tidak dapat menandai notifikasi orang lain. |
 | 14 | Admin yang mempunyai izin membaca course mencoba melakukan operasi tulis tugas atau penilaian melalui API tanpa hak yang sesuai. | Hak membaca course tidak otomatis memberikan izin menulis tugas atau memberi nilai. Pemeriksaan write tetap diterapkan pada controller dan Policy sesuai kontrak API. | `AccessIntegrationTest`: `admin read permissions do not grant assignment or grading writes`; `AssignmentApiTest`: mahasiswa dan admin tidak dapat membuat, mengubah, menghapus, atau memublikasikan tugas melalui API. |
 | 15 | Pengguna mencoba mengubah role, identitas sensitif, atau data pemilik dengan manipulasi field request. | Gunakan validasi dan daftar field yang diizinkan. Field sensitif harus ditangani secara eksplisit di server, bukan diterima mentah melalui mass assignment. | `UserManagementTest`: `manipulated sensitive fields are ignored when updating user`, `manipulated sensitive fields are ignored when creating user`, serta test penolakan perubahan role oleh non-admin. |
-| 16 | Pengguna tanpa autentikasi mengakses endpoint atau halaman yang dilindungi. | Middleware autentikasi melindungi route; API dan web menggunakan respons yang sesuai untuk permintaan tanpa sesi atau token yang valid. | `AccessIntegrationTest`: guest API requests ditolak tanpa data atau penulisan; guest web requests diarahkan ke login. `WebAuthenticationTest`: guest diarahkan ke login dari dashboard. |
+| 16 | Pengguna tanpa autentikasi mengakses endpoint atau halaman yang dilindungi. | Middleware autentikasi melindungi route; API dan web menggunakan respons yang sesuai untuk permintaan tanpa sesi atau token yang valid. | `AccessIntegrationTest::test_guest_api_requests_are_rejected_without_data_or_writes`, `AccessIntegrationTest::test_guest_web_requests_redirect_to_login_without_data`, dan `WebAuthenticationTest::test_guest_is_redirected_to_login_from_dashboard`. |
+
+### Tambahan Test Autentikasi dan Manajemen Mata Kuliah dari Fariz
+
+**Autentikasi:**
+- `WebAuthenticationTest::test_user_can_login_with_valid_credentials`
+- `WebAuthenticationTest::test_user_cannot_login_with_invalid_password`
+- `WebAuthenticationTest::test_guest_is_redirected_to_login_from_dashboard`
+
+**Manajemen Mata Kuliah:**
+- `CourseManagementTest::test_admin_can_create_course_with_active_lecturer`
+- `CourseManagementTest::test_admin_can_update_course`
+- `CourseManagementTest::test_admin_can_delete_course`
+- `CourseManagementTest::test_non_admin_cannot_create_update_or_delete_courses`
+- `CourseManagementTest::test_course_creation_rejects_non_dosen_and_deleted_lecturers`
+- `CourseManagementTest::test_course_update_rejects_non_dosen_and_deleted_lecturers`
+- `CourseManagementTest::test_oversized_course_description_is_rejected_without_writes`
+
+Seluruh test tersebut menggunakan `RefreshDatabase` dan factory untuk menyiapkan data pengujian. Test suite telah dijalankan dengan hasil 381 test lulus.
 
 ## 4. Perbedaan `@can` dan Otorisasi Server
 
@@ -89,3 +107,19 @@ Angka tersebut merupakan hasil pengujian lokal pada saat dicatat. Jalankan kemba
 Route CRUD web untuk materi dan tugas admin telah didaftarkan dan pengujian integrasinya telah lulus melalui `AssignmentWebTest` dan `MaterialWebTest`.
 
 Pemeriksaan tetap perlu dilakukan jika route, middleware, Policy, controller, atau cakupan test berubah. Kelulusan test lokal tidak dengan sendirinya membuktikan bahwa CI GitHub telah lulus.
+
+## 8. Tambahan Keamanan Autentikasi dari Fariz
+
+Pencegahan User Enumeration pada Reset Password
+
+Risiko: Pengguna bisa tahu apakah alamat email terdaftar melalui perbedaan pesan kesalahan pada proses reset password.
+
+Kontrol pengamanan: NewPasswordController menggunakan pesan kesalahan generik yang sama untuk status INVALID_USER dan INVALID_TOKEN, sehingga keberadaan akun tidak dapat dibedakan melalui pesan respons.
+
+Bukti test otomatis:
+
+PasswordResetTest::test_password_reset_error_does_not_reveal_account_existence
+
+Test memastikan bahwa email terdaftar dengan token tidak valid dan email yang tidak terdaftar menghasilkan pesan kesalahan yang sama.
+
+Hasil pengujian: 1 test baru lulus dan seluruh PasswordResetTest menghasilkan 7 test lulus setelah perbaikan.

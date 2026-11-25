@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Assignment;
 use App\Models\Grade;
 use App\Models\Submission;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -18,6 +19,41 @@ class DatabaseSeederTest extends TestCase
         Storage::fake('local');
 
         $this->seed();
+
+        // Memastikan role akun demo tersimpan dengan benar.
+        $this->assertDatabaseCount('users', 34);
+
+        $this->assertSame(
+            1,
+            User::where('role', 'admin')->count()
+        );
+
+        $this->assertSame(
+            3,
+            User::where('role', 'dosen')->count()
+        );
+
+        $this->assertSame(
+            30,
+            User::where('role', 'mahasiswa')->count()
+        );
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'admin@kampuslms.test',
+            'role' => 'admin',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'dosen@kampuslms.test',
+            'role' => 'dosen',
+            'nim_nip' => '198001001',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'mahasiswa@kampuslms.test',
+            'role' => 'mahasiswa',
+            'nim_nip' => '202500001',
+        ]);
 
         $this->assertSame(
             5,

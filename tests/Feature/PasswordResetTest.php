@@ -138,4 +138,74 @@ class PasswordResetTest extends TestCase
             Hash::check('password-lama', $user->password)
         );
     }
+
+    /**
+     * Memastikan pesan kesalahan reset password tidak membocorkan
+     * apakah alamat email terdaftar atau tidak.
+     */
+    public function test_password_reset_error_does_not_reveal_account_existence(): void
+    {
+        $registeredUser = User::factory()->create();
+
+        $invalidToken = 'token-tidak-valid';
+        $resetRoute = route('password.reset', [
+            'token' => $invalidToken,
+        ]);
+
+        $payload = [
+            'token' => $invalidToken,
+            'password' => 'password-baru-123',
+            'password_confirmation' => 'password-baru-123',
+        ];
+
+        $genericMessage =
+            'Tautan reset password tidak valid atau sudah kedaluwarsa.';
+
+        // Email terdaftar dengan token tidak valid.
+        $this->from($resetRoute)
+            ->post(route('password.store'), $payload + [
+                'email' => $registeredUser->email,
+            ])
+            ->assertRedirect($resetRoute)
+            ->assertSessionHasErrors([
+                'email' => $genericMessage,
+            ]);
+
+        // Email tidak terdaftar dengan token tidak valid.
+        $this->from($resetRoute)
+            ->post(route('password.store'), $payload + [
+                'email' => 'tidak-terdaftar@example.com',
+            ])
+            ->assertRedirect($resetRoute)
+            ->assertSessionHasErrors([
+                'email' => $genericMessage,
+            ]);
+    }
+
+    public function test_user_cannot_reset_password_with_password_over_72_bytes(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'password-lama',
+        ]);
+
+        $token = Password::broker()->createToken($user);
+        $password = str_repeat('a', 73);
+
+        $response = $this->from(
+            route('password.reset', ['token' => $token])
+        )->post(route('password.store'), [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => $password,
+            'password_confirmation' => $password,
+        ]);
+
+        $response->assertSessionHasErrors('password');
+
+        $user->refresh();
+
+        $this->assertTrue(
+            Hash::check('password-lama', $user->password)
+        );
+    }
 }

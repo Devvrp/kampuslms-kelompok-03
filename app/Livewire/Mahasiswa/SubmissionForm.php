@@ -5,6 +5,8 @@ namespace App\Livewire\Mahasiswa;
 use App\Models\Assignment;
 use App\Models\Submission;
 use App\Models\User;
+use App\Rules\MaxTextBytes;
+use App\Rules\MaxOriginalFileNameLength;
 use App\Services\AssignmentSubmissionService;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
@@ -41,10 +43,12 @@ class SubmissionForm extends Component
                 'file',
                 'mimes:pdf,doc,docx',
                 'max:5120',
+                new MaxOriginalFileNameLength,
             ],
             'note' => [
                 'nullable',
                 'string',
+                new MaxTextBytes,
             ],
         ]);
 
@@ -79,6 +83,11 @@ class SubmissionForm extends Component
 
     public function render()
     {
+        Gate::authorize('create', [
+            Submission::class,
+            $this->assignment,
+        ]);
+
         $existingSubmission = $this->assignment
             ->submissions()
             ->where('user_id', auth()->id())

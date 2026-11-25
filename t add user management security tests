@@ -1,0 +1,182 @@
+[1mdiff --git a/tests/Feature/UserManagementTest.php b/tests/Feature/UserManagementTest.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..6ea1309[m
+[1m--- /dev/null[m
+[1m+++ b/tests/Feature/UserManagementTest.php[m
+[36m@@ -0,0 +1,467 @@[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32mnamespace Tests\Feature;[m
+[32m+[m
+[32m+[m[32muse App\Models\User;[m
+[32m+[m[32muse Illuminate\Foundation\Testing\RefreshDatabase;[m
+[32m+[m[32muse Tests\TestCase;[m
+[32m+[m
+[32m+[m[32mclass UserManagementTest extends TestCase[m
+[32m+[m[32m{[m
+[32m+[m[32m    use RefreshDatabase;[m
+[32m+[m
+[32m+[m[32m    public function test_guest_cannot_access_user_management(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $this->get(route('admin.users.index'))[m
+[32m+[m[32m            ->assertRedirect(route('login'));[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_non_admin_cannot_access_user_management(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $user = User::factory()->create(['role' => 'mahasiswa']);[m
+[32m+[m
+[32m+[m[32m        $this->actingAs($user)[m
+[32m+[m[32m            ->get(route('admin.users.index'))[m
+[32m+[m[32m            ->assertForbidden();[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_admin_can_view_user_list(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $admin = User::factory()->create(['role' => 'admin']);[m
+[32m+[m
+[32m+[m[32m        User::factory()->count(3)->create(['role' => 'mahasiswa']);[m
+[32m+[m
+[32m+[m[32m        $this->actingAs($admin)[m
+[32m+[m[32m            ->get(route('admin.users.index'))[m
+[32m+[m[32m            ->assertOk()[m
+[32m+[m[32m            ->assertViewIs('users.index');[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_admin_can_create_user(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $admin = User::factory()->create(['role' => 'admin']);[m
+[32m+[m
+[32m+[m[32m        $response = $this->actingAs($admin)->post([m
+[32m+[m[32m            route('admin.users.store'),[m
+[32m+[m[32m            [[m
+[32m+[m[32m                'name' => 'Mahasiswa Baru',[m
+[32m+[m[32m                'email' => 'mahasiswa.baru@example.com',[m
+[32m+[m[32m                'nim_nip' => '20260001',[m
+[32m+[m[32m                'role' => 'mahasiswa',[m
+[32m+[m[32m                'password' => 'password123',[m
+[32m+[m[32m                'password_confirmation' => 'password123',[m
+[32m+[m[32m            ][m
+[32m+[m[32m        );[m
+[32m+[m
+[32m+[m[32m        $user = User::where('email', 'mahasiswa.baru@example.com')[m
+[32m+[m[32m            ->firstOrFail();[m
+[32m+[m
+[32m+[m[32m        $response->assertRedirect(route('admin.users.show', $user));[m
+[32m+[m
+[32m+[m[32m        $this->assertDatabaseHas('users', [[m
+[32m+[m[32m            'email' => 'mahasiswa.baru@example.com',[m
+[32m+[m[32m            'name' => 'Mahasiswa Baru',[m
+[32m+[m[32m            'nim_nip' => '20260001',[m
+[32m+[m[32m            'role' => 'mahasiswa',[m
+[32m+[m[32m        ]);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_admin_can_update_user(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $admin = User::factory()->create(['role' => 'admin']);[m
+[32m+[m[32m        $user = User::factory()->create(['role' => 'mahasiswa']);[m
+[32m+[m
+[32m+[m[32m        $response = $this->actingAs($admin)->put([m
+[32m+[m[32m            route('admin.users.update', $user),[m
+[32m+[m[32m            [[m
+[32m+[m[32m                'name' => 'Nama Diperbarui',[m
+[32m+[m[32m                'email' => 'nama.diperbarui@example.com',[m
+[32m+[m[32m                'nim_nip' => '20260002',[m
+[32m+[m[32m                'role' => 'dosen',[m
+[32m+[m[32m            ][m
+[32m+[m[32m        );[m
+[32m+[m
+[32m+[m[32m        $response->assertRedirect(route('admin.users.show', $user));[m
+[32m+[m
+[32m+[m[32m        $this->assertDatabaseHas('users', [[m
+[32m+[m[32m            'id' => $user->id,[m
+[32m+[m[32m            'name' => 'Nama Diperbarui',[m
+[32m+[m[32m            'email' => 'nama.diperbarui@example.com',[m
+[32m+[m[32m            'nim_nip' => '20260002',[m
+[32m+[m[32m            'role' => 'dosen',[m
+[32m+[m[32m        ]);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_admin_can_delete_user(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $admin = User::factory()->create(['role' => 'admin']);[m
+[32m+[m[32m        $user = User::factory()->create(['role' => 'mahasiswa']);[m
+[32m+[m
+[32m+[m[32m        $response = $this->actingAs($admin)->delete([m
+[32m+[m[32m            route('admin.users.destroy', $user)[m
+[32m+[m[32m        );[m
+[32m+[m
+[32m+[m[32m        $response->assertRedirect(route('admin.users.index'));[m
+[32m+[m
+[32m+[m[32m        $this->assertSoftDeleted('users', ['id' => $user->id]);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_user_creation_rejects_invalid_role(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $admin = User::factory()->create(['role' => 'admin']);[m
+[32m+[m
+[32m+[m[32m        $response = $this->actingAs($admin)->post([m
+[32m+[m[32m            route('admin.users.store'),[m
+[32m+[m[32m            [[m
+[32m+[m[32m                'name' => 'Pengguna Tidak Valid',[m
+[32m+[m[32m                'email' => 'invalid.role@example.com',[m
+[32m+[m[32m                'nim_nip' => '20260003',[m
+[32m+[m[32m                'role' => 'superadmin',[m
+[32m+[m[32m                'password' => 'password123',[m
+[32m+[m[32m                'password_confirmation' => 'password123',[m
+[32m+[m[32m            ][m
+[32m+[m[32m        );[m
+[32m+[m
+[32m+[m[32m        $response->assertSessionHasErrors('role');[m
+[32m+[m
+[32m+[m[32m        $this->assertDatabaseMissing('users', [[m
+[32m+[m[32m            'email' => 'invalid.role@example.com',[m
+[32m+[m[32m        ]);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_user_update_rejects_invalid_role(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $admin = User::factory()->create(['role' => 'admin']);[m
+[32m+[m[32m        $target = User::factory()->create(['role' => 'mahasiswa']);[m
+[32m+[m
+[32m+[m[32m        $response = $this->actingAs($admin)->put([m
+[32m+[m[32m            route('admin.users.update', $target),[m
+[32m+[m[32m            [[m
+[32m+[m[32m                'name' => $target->name,[m
+[32m+[m[32m                'email' => $target->email,[m
+[32m+[m[32m                'nim_nip' => $target->nim_nip,[m
+[32m+[m[32m                'role' => 'superadmin',[m
+[32m+[m[32m            ][m
+[32m+[m[32m        );[m
+[32m+[m
+[32m+[m[32m        $response->assertSessionHasErrors('role');[m
+[32m+[m
+[32m+[m[32m        $this->assertDatabaseHas('users', [[m
+[32m+[m[32m            'id' => $target->id,[m
+[32m+[m[32m            'role' => 'mahasiswa',[m
+[32m+[m[32m        ]);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function test_admin_can_search_users_by_name_or_email(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $admin = User::factory()->create(['role' => 'admin']);[m
+[32m+[m
+[32m+[m[32m        User::factory()->create([[m
+[32m+[m[32m            'name' => 'Budi Santoso',[m
+[32m+[m[32m            'email' => 'budi@example.com',[m
+[32m+[m[32m            'role' => 'mahasiswa',[m
+[32m+[m[32m        ]);[m
+[32m+[m
+[32m+[m[32m        User::factory()->create([[m
+[32m+[m[32m            'name' => 'Siti Aminah',[m
+[32m+[m[32m            'email' => 'siti@example.com',[m
+[32m+[m[32m            'role' => 'dosen',[m
+[32m+[m[32m        ]);[m
+[32m+[m
+[32m+[m[32m        $responseByName = $this->actingAs($admin)->get([m
+[32m+[m[32m            route('admin.users.index', ['q' => 'Budi'])[m
+[32m+[m[32m        );[m
+[32m+[m
+[32m+[m[32m        $responseByName->assertOk();[m
+[

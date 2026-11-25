@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CourseManagementTest extends TestCase
@@ -234,5 +235,88 @@ class CourseManagementTest extends TestCase
             'lecturer_id' => $owner->id,
             'name' => 'Nama Sebelum Pengujian',
         ]);
+    }
+
+    public static function descriptionAtByteLimit(): array
+    {
+        return [
+            'ASCII 65535 bytes' => [str_repeat('a', 65535)],
+            'UTF-8 65535 bytes' => [str_repeat('é', 32767) . 'a'],
+        ];
+    }
+
+    #[DataProvider('descriptionAtByteLimit')]
+    public function test_course_description_at_byte_limit_is_saved_on_create_and_update(string $description): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $lecturer = User::factory()->create(['role' => 'dosen']);
+
+        $payload = $this->validPayload($lecturer->id, [
+            'description' => $description,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.courses.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $course = Course::where('code', 'MKTEST001')->firstOrFail();
+
+        $this->assertSame($description, $course->description);
+
+        $course->update(['description' => 'Deskripsi sebelum revisi']);
+
+        $this->put(
+            route('admin.courses.update', $course),
+            $this->validPayload($lecturer->id, [
+                'code' => $course->code,
+                'description' => $description,
+            ])
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame($description, $course->fresh()->description);
+    }
+
+    public static function oversizedDescription(): array
+    {
+        return [
+            'ASCII 65536 bytes' => [str_repeat('a', 65536)],
+            'UTF-8 65536 bytes' => [str_repeat('é', 32768)],
+        ];
+    }
+
+    #[DataProvider('oversizedDescription')]
+    public function test_oversized_course_description_is_rejected_without_writes(string $description): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $lecturer = User::factory()->create(['role' => 'dosen']);
+
+        $course = Course::factory()->create([
+            'lecturer_id' => $lecturer->id,
+            'description' => 'Deskripsi asli',
+        ]);
+
+        $original = $course->fresh()->getAttributes();
+
+        $this->actingAs($admin)
+            ->post(
+                route('admin.courses.store'),
+                $this->validPayload($lecturer->id, [
+                    'description' => $description,
+                ])
+            )
+            ->assertSessionHasErrors('description');
+
+        $this->assertDatabaseCount('courses', 1);
+
+        $this->put(
+            route('admin.courses.update', $course),
+            $this->validPayload($lecturer->id, [
+                'code' => $course->code,
+                'name' => 'Nama yang tidak boleh tersimpan',
+                'description' => $description,
+            ])
+        )->assertSessionHasErrors('description');
+
+        $this->assertSame($original, $course->fresh()->getAttributes());
     }
 }

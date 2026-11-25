@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\Material;
 use App\Rules\MaxTextBytes;
+use App\Rules\MaxOriginalFileNameLength;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -48,6 +49,7 @@ class MaterialController extends Controller
                 'file',
                 'mimes:pdf,pptx,docx',
                 'max:20480',
+                new MaxOriginalFileNameLength,
             ],
             'external_url' => [
                 'required_if:type,link',
@@ -130,7 +132,11 @@ class MaterialController extends Controller
 
         return $disk->download(
             $material->file_path,
-            $material->original_name ?: basename($material->file_path)
+            $material->original_name ?: basename($material->file_path),
+            [
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
         );
     }
 
@@ -160,6 +166,7 @@ class MaterialController extends Controller
                 'file',
                 'mimes:pdf,pptx,docx',
                 'max:20480',
+                new MaxOriginalFileNameLength,
             ],
             'external_url' => [
                 'required_if:type,link',

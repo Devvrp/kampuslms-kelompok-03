@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ReturnsApiValidationErrors;
+use App\Rules\MaxTextBytes;
+use App\Rules\MaxOriginalFileNameLength;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,8 +25,13 @@ class StoreSubmissionRequest extends FormRequest
                 'file',
                 'mimes:pdf,doc,docx',
                 'max:5120',
+                new MaxOriginalFileNameLength,
             ],
-            'note' => ['nullable', 'string'],
+            'note' => [
+                'nullable',
+                'string',
+                new MaxTextBytes,
+            ],
         ];
     }
 

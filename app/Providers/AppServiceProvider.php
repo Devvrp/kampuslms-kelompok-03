@@ -2,6 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Assignment;
+use App\Models\Course;
+use App\Models\Grade;
+use App\Models\Submission;
+use App\Observers\AssignmentObserver;
+use App\Observers\CourseObserver;
+use App\Observers\GradeObserver;
+use App\Observers\SubmissionObserver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 
@@ -14,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+<<<<<<< HEAD
         // Model::preventLazyLoading();
     }
        
@@ -24,3 +33,17 @@ class AppServiceProvider extends ServiceProvider
     //     }
     // }
 }
+=======
+        // Observer harus aktif di semua lingkungan.
+        Course::observe(CourseObserver::class);
+        Assignment::observe(AssignmentObserver::class);
+        Submission::observe(SubmissionObserver::class);
+        Grade::observe(GradeObserver::class);
+
+        // Mencegah lazy loading di luar production.
+        if (! $this->app->isProduction()) {
+            Model::preventLazyLoading();
+        }
+    }
+}
+>>>>>>> 51da5088c504b67f726064a8753fa98b15a5e900

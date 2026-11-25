@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SubmissionFormTest extends TestCase
@@ -248,5 +249,232 @@ class SubmissionFormTest extends TestCase
 
         $this->assertTrue($submission->is_late);
         Storage::disk($disk)->assertExists($submission->file_path);
+    }
+
+    public function test_component_rechecks_enrollment_after_access_is_revoked(): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        $component = Livewire::actingAs($mahasiswa)
+            ->test(SubmissionForm::class, [
+                'assignment' => $assignment,
+            ]);
+
+        // Mahasiswa dikeluarkan dari mata kuliah.
+        $assignment->course->students()->detach($mahasiswa->id);
+
+        // Render ulang harus ditolak.
+        $component
+            ->set('note', 'Percobaan setelah dikeluarkan.')
+            ->assertStatus(403);
+
+        $this->assertDatabaseCount('submissions', 0);
+    }
+
+    public static function oversizedSubmissionNotes(): array
+    {
+        return [
+            'ASCII 65536 bytes' => [str_repeat('a', 65536)],
+            'UTF-8 65536 bytes' => [str_repeat('é', 32768)],
+        ];
+    }
+
+    #[DataProvider('oversizedSubmissionNotes')]
+    public function test_livewire_rejects_oversized_submission_note(string $note): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        Livewire::actingAs($mahasiswa)
+            ->test(SubmissionForm::class, [
+                'assignment' => $assignment,
+            ])
+            ->set('file', UploadedFile::fake()->create(
+                'tugas.pdf',
+                500,
+                'application/pdf'
+            ))
+            ->set('note', $note)
+            ->call('submit')
+            ->assertHasErrors(['note']);
+
+        $this->assertDatabaseCount('submissions', 0);
+    }
+
+    #[DataProvider('oversizedSubmissionNotes')]
+    public function test_web_controller_rejects_oversized_submission_note(string $note): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        $this->actingAs($mahasiswa)
+            ->post(route('mahasiswa.assignments.submissions.store', $assignment), [
+                'file' => UploadedFile::fake()->create(
+                    'tugas.pdf',
+                    500,
+                    'application/pdf'
+                ),
+                'note' => $note,
+            ])
+            ->assertSessionHasErrors('note');
+
+        $this->assertDatabaseCount('submissions', 0);
+    }
+
+    public function test_livewire_accepts_submission_note_at_byte_limit(): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        $note = str_repeat('é', 32767) . 'a';
+
+        Livewire::actingAs($mahasiswa)
+            ->test(SubmissionForm::class, [
+                'assignment' => $assignment,
+            ])
+            ->set('file', UploadedFile::fake()->create(
+                'tugas.pdf',
+                500,
+                'application/pdf'
+            ))
+            ->set('note', $note)
+            ->call('submit')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $submission = Submission::firstOrFail();
+
+        $this->assertSame($note, $submission->note);
+    }
+
+    public function test_web_controller_accepts_submission_note_at_byte_limit(): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        $note = str_repeat('é', 32767) . 'a';
+
+        $this->actingAs($mahasiswa)
+            ->post(route('mahasiswa.assignments.submissions.store', $assignment), [
+                'file' => UploadedFile::fake()->create(
+                    'tugas.pdf',
+                    500,
+                    'application/pdf'
+                ),
+                'note' => $note,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            $note,
+            Submission::firstOrFail()->note
+        );
+    }
+
+    public function test_livewire_rejects_submission_file_name_over_255_characters(): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        Livewire::actingAs($mahasiswa)
+            ->test(SubmissionForm::class, [
+                'assignment' => $assignment,
+            ])
+            ->set('file', $this->livewirePdfWithOriginalName(
+                str_repeat('a', 252) . '.pdf'
+            ))
+            ->set('note', 'Pengujian nama file panjang.')
+            ->call('submit')
+            ->assertHasErrors(['file']);
+
+        $this->assertDatabaseCount('submissions', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_web_controller_rejects_submission_file_name_over_255_characters(): void
+    {
+        [$mahasiswa, $assignment] =
+            $this->createEnrolledStudentAssignment();
+
+        $this->actingAs($mahasiswa)
+            ->post(route('mahasiswa.assignments.submissions.store', $assignment), [
+                'file' => $this->pdfWithOriginalName(
+                    str_repeat('a', 252) . '.pdf'
+                ),
+                'note' => 'Pengujian nama file panjang.',
+            ])
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('submissions', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    private function pdfWithOriginalName(string $originalName): UploadedFile
+    {
+        $fake = UploadedFile::fake()->create(
+            'short.pdf',
+            1,
+            'application/pdf'
+        );
+
+        return new class(
+            $fake->getPathname(),
+            $originalName
+        ) extends UploadedFile {
+            public string $name;
+
+            public function __construct(string $path, string $originalName)
+            {
+                parent::__construct(
+                    $path,
+                    $originalName,
+                    'application/pdf',
+                    UPLOAD_ERR_OK,
+                    true
+                );
+
+                $this->name = $originalName;
+            }
+
+            public function getMimeType(): ?string
+            {
+                return 'application/pdf';
+            }
+
+            public function getSize(): int
+            {
+                return 1024;
+            }
+        };
+    }
+
+    private function livewirePdfWithOriginalName(string $originalName): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'livewire-upload-');
+
+        file_put_contents($path, str_repeat('x', 1024));
+
+        return new class($path, $originalName) extends UploadedFile {
+            public string $name;
+
+            public function __construct(string $path, string $originalName)
+            {
+                parent::__construct(
+                    $path,
+                    $originalName,
+                    'application/pdf',
+                    UPLOAD_ERR_OK,
+                    true
+                );
+
+                $this->name = $originalName;
+            }
+
+            public function getMimeType(): ?string
+            {
+                return 'application/pdf';
+            }
+        };
     }
 }

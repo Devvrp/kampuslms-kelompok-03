@@ -1,198 +1,320 @@
-# KampusLMS Kelompok 03
+# KampusLMS — Kelompok 03
 
-## Deskripsi Proyek
+KampusLMS adalah aplikasi **Learning Management System (LMS)** berbasis web untuk mendukung pengelolaan kegiatan pembelajaran di lingkungan kampus. Aplikasi menyediakan fitur sesuai peran admin, dosen, dan mahasiswa.
 
-KampusLMS adalah sistem Learning Management System (LMS) yang dikembangkan untuk mendukung kegiatan pembelajaran di lingkungan kampus. Sistem ini dibuat untuk membantu mahasiswa/i dalam kegiatan akademik.
+**Aplikasi:** [KampusLMS — Production](https://kampuslms-kelompok-03-production.up.railway.app/)
 
----
+## Daftar isi
 
-## Daftar Anggota dan Pembagian Tugas
+- [Fitur utama](#fitur-utama)
+- [Teknologi](#teknologi)
+- [Menjalankan aplikasi secara lokal](#menjalankan-aplikasi-secara-lokal)
+- [Menjalankan worker notifikasi](#menjalankan-worker-notifikasi)
+- [Menjalankan pengujian](#menjalankan-pengujian)
+- [Gambaran API](#gambaran-api)
+- [Alur kontribusi dan Git](#alur-kontribusi-dan-git)
+- [Anggota kelompok](#anggota-kelompok)
 
-| No. | Nama | NIM | Tanggung Jawab Utama |
-|---|---|---|---|
-| 1 | Devin Raditya P | 10241021 | Ketua kelompok, koordinasi pengerjaan, pengumpulan dan penyerahan tugas kelompok, integrasi kode, pemeriksaan kualitas, serta backup pekerjaan yang belum selesai. |
-| 2 | Fariz Daffa Abbiyu Rahmatullah | 10241029 | Pengelolaan mata kuliah, termasuk CRUD, pencarian, filter, dan paginasi. |
-| 3 | Fabyo Nathanael Suoth | 10241027 | Pengelolaan materi pembelajaran dan tugas, termasuk CRUD dan validasi data. |
-| 4 | Eagan Ferdian | 10241025 | Pengelolaan nilai dan rekap nilai, serta pengujian fitur terkait. |
-| 5 | Dewi Bulan Purnama | 10241023 | Pengelolaan pengguna, termasuk CRUD pengguna, pencarian, dan filter. |
+## Fitur utama
 
-Ketua kelompok bertanggung jawab memantau progres, mengoordinasikan integrasi pekerjaan, dan memastikan tugas kelompok diserahkan sesuai tenggat. Apabila ada pekerjaan yang belum selesai, ketua membantu mengambil alih agar progres kelompok tetap berjalan.
+### Admin
 
----
+- Mengelola data pengguna.
+- Mengelola mata kuliah.
+- Mengelola materi dan tugas pada mata kuliah.
+- Mengelola pendaftaran mahasiswa pada mata kuliah.
 
-## Teknologi yang Digunakan
+### Dosen
 
-- PHP
-- Laravel 12
-- MySQL
-- Composer
-- Node.js dan NPM
-- Vite
+- Melihat mata kuliah yang dikelola.
+- Mengelola materi dan tugas mata kuliah.
+- Melihat submission mahasiswa.
+- Memberikan nilai dan umpan balik serta melihat rekap nilai mata kuliah.
+- Mengelola template umpan balik.
+- Mengelola pendaftaran mahasiswa pada mata kuliah sesuai hak akses.
 
----
+### Mahasiswa
 
-## Cara Instalasi
+- Melihat mata kuliah yang diikuti.
+- Melihat materi dan tugas yang tersedia.
+- Mengumpulkan dan mengirim ulang submission tugas sesuai ketentuan tugas.
+- Melihat nilai pribadi.
+- Melihat notifikasi.
 
-### Worker notifikasi — Milestone M3
+### Fitur umum dan API
 
-Notifikasi tugas baru dan hasil penilaian menggunakan Event → Listener (`ShouldQueue`) → Notification database. Konfigurasi `.env` harus memakai `QUEUE_CONNECTION=database`. Tabel `jobs`, `failed_jobs`, dan `notifications` sudah memiliki migrasi; tidak perlu membuat migrasi tabel queue tambahan.
+- Autentikasi, logout, dan alur reset kata sandi.
+- Pengunduhan materi dan berkas submission melalui route aplikasi yang memerlukan autentikasi.
+- Notifikasi tugas dan hasil penilaian yang diproses menggunakan database queue.
+- REST API versi 1 dengan autentikasi token Laravel Sanctum untuk fitur mata kuliah, materi, tugas, submission, penilaian, rekap nilai, dan notifikasi.
 
-Setelah instalasi aplikasi dan konfigurasi database selesai, jalankan:
+Akses setiap fitur tetap mengikuti role dan pemeriksaan otorisasi yang diterapkan pada aplikasi.
+
+## Teknologi
+
+| Bagian | Teknologi |
+|---|---|
+| Backend | PHP 8.3+ dan Laravel 12 |
+| Database | MySQL |
+| Interaksi antarmuka | Livewire 3 |
+| API authentication | Laravel Sanctum |
+| Dependency backend | Composer |
+| Frontend assets | Node.js, NPM, dan Vite |
+| Deployment | Railway |
+
+## Menjalankan aplikasi secara lokal
+
+### Prasyarat
+
+Pastikan perangkat sudah memiliki:
+
+- PHP 8.3 atau versi yang kompatibel dengan dependency proyek.
+- Composer.
+- MySQL.
+- Node.js dan NPM.
+
+### 1. Clone repository
 
 ```bash
-php artisan migrate
-php artisan config:clear
-php artisan event:clear
-php artisan event:list
+git clone https://github.com/Devvrp/kampuslms-kelompok-03.git
+cd kampuslms-kelompok-03
 ```
 
-Jalankan worker di terminal terpisah dan biarkan tetap berjalan selama aplikasi dipakai:
+### 2. Install dependency PHP
 
-```bash
-php artisan queue:work database --sleep=3 --tries=3 --backoff=10
-```
-
-Jika worker mati, tugas/nilai tetap tersimpan tetapi notifikasi menunggu di tabel `jobs`. Listener mencoba tiga kali dengan jeda 10 detik. Periksa kegagalan melalui:
-
-```bash
-php artisan queue:failed
-php artisan queue:retry <uuid-job-yang-gagal>
-php artisan queue:restart
-```
-
-Lihat `storage/logs/laravel.log` untuk penyebab kegagalan. Jalankan `queue:restart` setelah perubahan kode; mulai lagi `queue:work` jika worker dijalankan manual. [Panduan materi, navbar, notifikasi, dan demo M3](docs/materials-notifications.md) menjelaskan pemicu, kepemilikan, dan batas cakupan bagian ini.
-
-### 1. Clone Repository
-
-Clone repository proyek ini:
-
-```bash
-git clone https://github.com/Devvrp/kampuslms-kelompok-03
-```
-
-### 2. Install Dependency PHP
-
-Lakukan instalasi dependency php ini di terminal vscode dan pastikan sudah masuk dalam folder project 
 ```bash
 composer install
 ```
 
-### 3. Buat .env
+### 3. Siapkan file environment
 
-Kamu bisa membuat .env dengan menyalin .env.example . Isi sesuai kebutuhan program mulai dari database hingga app key.
+Di Windows PowerShell:
 
-### 4. Generate APP Key
-
-generate dengan mengetik perintah ini di powershell vscode
-```bash
-php artisan key:generate
+```powershell
+Copy-Item .env.example .env
 ```
 
-### 5 Atur Setting Database
+Di macOS/Linux:
 
-Kamu bisa isi ini sesuai dengan database yang kamu gunakan, nama database, dan usn serta password. Pastikan sama persis seperti nama database kamu
-```env
+```bash
+cp .env.example .env
+```
+
+Buka file `.env`, lalu sesuaikan konfigurasi aplikasi dan database lokal. Contoh konfigurasi MySQL:
+
+```dotenv
+APP_NAME="KampusLMS"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=kampuslms
 DB_USERNAME=root
 DB_PASSWORD=
+
+QUEUE_CONNECTION=database
 ```
 
-### 6. Jalankan Migrate
+Buat database `kampuslms` pada MySQL atau gunakan nama database lain yang sesuai dengan konfigurasi `.env`.
 
-Migration berguna untuk menambahkan/mengubah table tanpa perlu membuka database. Karena template laravel memberikan migration, maka jalankan :
+> Jangan mengunggah `.env` ke Git. File `.env.example` digunakan sebagai contoh konfigurasi dan boleh disimpan di repository.
 
-```bash 
+### 4. Generate application key
+
+```bash
+php artisan key:generate
+```
+
+### 5. Jalankan migration
+
+```bash
 php artisan migrate
 ```
 
-### 7 Instalasi Dependecy Front end yaitu vite js
+### 6. Install dan build frontend assets
 
-Karena di front end kita mengggunakan framework Javascript, maka jalankan :
-
-```bash 
+```bash
 npm install
-```
-
-Lalu jalankan menggunakan perintah berikut : 
-```bash 
 npm run build
 ```
 
-### 8 Jalankan program
+### 7. Jalankan aplikasi
 
-Jika seua sudah selesai, jalankan perintah berikut untuk menjalankan program :
-
-```bash 
+```bash
 php artisan serve
 ```
 
-kemudian akses via browser lewat link : 
+Buka aplikasi melalui:
+
 ```text
 http://127.0.0.1:8000
 ```
-atauapun
-```text
-http://kampuslms-kelompok-03.test
-```
 
-tergantung dengan apa yang anda gunakan, apakah laravel herd ataupun composer.
+### Data contoh untuk pengembangan lokal (opsional)
 
----
-# Cara push
+Jika membutuhkan data contoh, jalankan seeder pada **database lokal atau database khusus pengembangan**:
 
-### Cek branch saat ini
 ```bash
-git branch
+php artisan db:seed
 ```
 
-### Ambil update terbaru github
+Seeder membuat akun dan data demo untuk membantu pengujian fitur. Jangan menjalankan seeder demo pada database production karena data yang dibuat merupakan data contoh dengan kredensial bawaan pengembangan.
+
+## Menjalankan worker notifikasi
+
+Notifikasi tugas baru dan hasil penilaian diproses melalui event, listener yang menggunakan queue, dan database notification. Pastikan konfigurasi berikut tersedia di `.env`:
+
+```dotenv
+QUEUE_CONNECTION=database
+```
+
+Jalankan worker pada terminal terpisah dan biarkan tetap aktif selama aplikasi digunakan:
+
 ```bash
-git pull origin main
+php artisan queue:work database --sleep=3 --tries=3 --backoff=10
 ```
 
-### Buat branch baru dan langsung pindah ke branch tersebut
+Jika worker tidak berjalan, pekerjaan notifikasi dapat menunggu di tabel `jobs`. Untuk memeriksa pekerjaan yang gagal:
+
 ```bash
-git switch -c nama/bagian yang dikerjain
+php artisan queue:failed
 ```
 
-contoh : 
+Untuk mencoba kembali pekerjaan yang gagal, gunakan UUID job yang ditampilkan oleh perintah sebelumnya:
+
 ```bash
-git switch -c devin/tentang
+php artisan queue:retry <uuid-job>
 ```
 
-### Cek Perubahan
+Setelah perubahan kode, worker yang berjalan manual dapat diminta untuk berhenti setelah menyelesaikan pekerjaan saat ini:
+
 ```bash
-git status
+php artisan queue:restart
 ```
 
-### Tambahkan semua perubahan
+Jalankan kembali perintah `queue:work` setelah worker berhenti. Detail error dapat diperiksa pada `storage/logs/laravel.log`.
+
+## Menjalankan pengujian
+
+Jalankan seluruh test dengan:
+
 ```bash
-git add .
+php artisan test
 ```
 
-### Commit perubahan
+Pastikan konfigurasi database pengujian terpisah dari database pengembangan atau production. Jangan mengarahkan test ke database yang berisi data penting.
+
+## Gambaran API
+
+API menggunakan prefix `/api/v1`. Endpoint login dapat diakses tanpa token; endpoint lainnya berada di dalam middleware autentikasi Sanctum dan rate limit.
+
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| `POST` | `/api/v1/auth/login` | Login dan memperoleh token |
+| `POST` | `/api/v1/auth/logout` | Logout |
+| `GET` | `/api/v1/me` | Informasi pengguna yang sedang login |
+| `GET` | `/api/v1/courses` | Daftar mata kuliah |
+| `GET` | `/api/v1/courses/{course}` | Detail mata kuliah |
+| `GET` | `/api/v1/courses/{course}/materials` | Materi mata kuliah |
+| `GET` | `/api/v1/courses/{course}/assignments` | Tugas mata kuliah |
+| `POST` | `/api/v1/assignments` | Membuat tugas |
+| `PUT/PATCH` | `/api/v1/assignments/{assignment}` | Memperbarui tugas |
+| `DELETE` | `/api/v1/assignments/{assignment}` | Menghapus tugas |
+| `GET` | `/api/v1/assignments/{assignment}/submissions` | Daftar submission tugas |
+| `POST` | `/api/v1/assignments/{assignment}/submissions` | Mengirim submission |
+| `PUT` | `/api/v1/submissions/{submission}/grade` | Memberikan atau memperbarui nilai |
+| `GET` | `/api/v1/courses/{course}/grades` | Rekap nilai mata kuliah |
+| `GET` | `/api/v1/my/grades` | Nilai mahasiswa yang login |
+| `GET` | `/api/v1/notifications` | Daftar notifikasi |
+| `POST` | `/api/v1/notifications/{notification}/read` | Menandai notifikasi telah dibaca |
+
+Ketersediaan operasi mengikuti role, kepemilikan data, dan otorisasi pada masing-masing endpoint.
+
+## Alur kontribusi dan Git
+
+Pengembangan dilakukan melalui branch fitur/perbaikan dan Pull Request menuju `dev`. Branch `main` digunakan untuk kode yang sudah melalui peninjauan dan pemeriksaan CI.
+
+### 1. Ambil pembaruan branch `dev`
+
 ```bash
-git commit -m "feat: tambah halaman tentang"
+git fetch origin
+git switch dev
+git pull --ff-only origin dev
 ```
-keterangan :
 
-| No | Jenis Commit | Kegunaan | Contoh |
-|----|-------------|----------|--------|
-| 1 | `feat` | Menambahkan fitur baru | `feat: tambah halaman tentang` |
-| 2 | `fix` | Memperbaiki bug atau error | `fix: perbaiki error login` |
-| 3 | `docs` | Mengubah dokumentasi | `docs: update README` |
-| 4 | `style` | Merapikan tampilan atau format kode | `style: rapikan navbar` |
-| 5 | `refactor` | Merapikan struktur kode tanpa menambah fitur | `refactor: rapikan UserController` |
-| 6 | `test` | Menambahkan atau mengubah testing | `test: tambah test login` |
-| 7 | `chore` | Perubahan konfigurasi atau pekerjaan pendukung | `chore: update konfigurasi project` |
-| 8 | `perf` | Meningkatkan performa aplikasi | `perf: optimalkan query mahasiswa` |
-| 9 | `build` | Perubahan dependency atau proses build | `build: update vite configuration` |
-| 10 | `ci` | Perubahan konfigurasi CI/CD | `ci: tambah GitHub Actions` |
+### 2. Buat branch pekerjaan
 
-### Push branch ke GitHub
+Gunakan nama branch yang menjelaskan cakupan pekerjaan, misalnya:
+
 ```bash
-git push origin devin/tentang
+git switch -c feat/nama-fitur
 ```
+
+Untuk perbaikan bug, gunakan awalan `fix/`; untuk dokumentasi, gunakan `docs/`.
+
+### 3. Periksa dan stage perubahan
+
+```bash
+git status --short
+git add -p
+git diff --cached
+git diff --cached --check
+```
+
+`git add -p` membantu memilih perubahan yang memang akan dimasukkan ke commit. Hindari `git add .` tanpa memeriksa daftar perubahan terlebih dahulu.
+
+### 4. Jalankan pengujian dan commit
+
+```bash
+php artisan test
+git commit -m "feat: jelaskan perubahan"
+```
+
+Gunakan Conventional Commits agar tujuan commit mudah dibaca:
+
+| Prefix | Kegunaan | Contoh |
+|---|---|---|
+| `feat` | Menambahkan fitur | `feat: add course search` |
+| `fix` | Memperbaiki bug | `fix: validate submission upload` |
+| `docs` | Memperbarui dokumentasi | `docs: update project readme` |
+| `style` | Perubahan format/tampilan tanpa mengubah perilaku | `style: tidy course page` |
+| `refactor` | Merapikan kode tanpa mengubah perilaku yang diharapkan | `refactor: simplify course service` |
+| `test` | Menambah atau memperbaiki pengujian | `test: cover submission authorization` |
+| `perf` | Meningkatkan performa | `perf: optimize dashboard queries` |
+| `chore` | Pekerjaan pemeliharaan | `chore: update project tooling` |
+| `ci` | Perubahan pipeline CI | `ci: update test matrix` |
+| `build` | Perubahan dependency/proses build | `build: update frontend dependencies` |
+
+### 5. Push branch dan buat Pull Request
+
+```bash
+git push -u origin feat/nama-fitur
+```
+
+Buat Pull Request dengan:
+
+- **Base:** `dev`
+- **Compare:** branch pekerjaan yang baru di-push.
+
+Isi bagian ringkasan, alasan perubahan, langkah pengujian, dampak, dan checklist pada template Pull Request. Satu branch dan satu Pull Request sebaiknya berfokus pada satu pekerjaan yang jelas.
+
+### Sebelum membuat Pull Request
+
+- Periksa kembali `git status` dan isi staging area.
+- Pastikan `.env`, kredensial, file upload lokal, dan artefak debug tidak ikut ter-commit.
+- Pastikan validasi dilakukan di server-side dan otorisasi diperiksa.
+- Jalankan test yang relevan dan periksa hasil CI.
+- Sertakan pembaruan dokumentasi apabila perubahan memengaruhi cara penggunaan atau konfigurasi aplikasi.
+
+## Anggota kelompok
+
+| No. | Nama | NIM | Tanggung jawab utama |
+|---:|---|---|---|
+| 1 | Devin Raditya Pratama | 10241021 | Ketua kelompok, koordinasi pengerjaan, pengumpulan dan penyerahan tugas, integrasi kode, pemeriksaan kualitas, serta backup pekerjaan yang belum selesai. |
+| 2 | Fariz Daffa Abbiyu Rahmatullah | 10241029 | Pengelolaan mata kuliah, termasuk CRUD, pencarian, filter, dan paginasi. |
+| 3 | Fabyo Nathanael Suoth | 10241027 | Pengelolaan materi pembelajaran dan tugas, termasuk CRUD dan validasi data. |
+| 4 | Eagan Ferdian | 10241025 | Pengelolaan nilai dan rekap nilai serta pengujian fitur terkait. |
+| 5 | Dewi Bulan Purnama | 10241023 | Pengelolaan pengguna, termasuk CRUD pengguna, pencarian, dan filter. |
